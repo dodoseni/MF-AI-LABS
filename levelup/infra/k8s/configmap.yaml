@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: levelup-config
+data:
+  AZURE_SEARCH_INDEX_NAME: "levelup-documents"
+  AZURE_OPENAI_API_VERSION: "2024-06-01"
+  AZURE_OPENAI_DEPLOYMENT: "gpt-4"
+  APP_NAME: "LevelUp"

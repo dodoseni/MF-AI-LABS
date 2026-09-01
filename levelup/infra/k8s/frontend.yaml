@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: levelup-frontend
+  labels:
+    app: levelup
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: levelup
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: levelup
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: <ACR_LOGIN_SERVER>/levelup-frontend:latest
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: levelup-frontend
+  labels:
+    app: levelup
+    component: frontend
+spec:
+  selector:
+    app: levelup
+    component: frontend
+  ports:
+    - port: 80
+      targetPort: 80
+  type: LoadBalancer
