@@ -79,3 +79,27 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
 - Notes:
   - The previous target repo (`multica-infra`) was the wrong home; MF-AI-LABS is now the shared repo for LevelUp.
   - Initial push may require GitHub write credentials (PAT/gh/SSH) on the runtime.
+
+## 2026-09-01 — Phase 2 plan: from mock/hardcoded data to working functionality
+
+- Component: planning
+- Status: PLANNED (backlog) — not yet executed
+- Context:
+  - Phase 1 delivered a full UI (React + TS, mock data), an Express backend with only `/api/health`, a ready-but-unapplied Azure SQL data model, and an AI assistant codebase that still needs Azure resources.
+  - Everything currently runs on hardcoded mock data (`levelup-frontend/src/data/mock.ts`); no endpoint returns real data yet.
+- Phase 2 issues (created in backlog, assigned, awaiting subscription access + scope decision):
+  - MIKK-10 P2-01 Provision Azure resources (AI Engineer) — P1 — prerequisite for everything below.
+  - MIKK-11 P2-02 Deploy data model to Azure SQL (Data Engineer) — P1 — blocked on MIKK-10.
+  - MIKK-12 P2-03 Entra ID SSO authentication (Full-Stack Developer) — P1 — blocked on MIKK-10.
+  - MIKK-13 P2-04 Backend API endpoints on real data (Full-Stack Developer) — P1 — blocked on MIKK-10/11.
+  - MIKK-14 P2-05 Wire frontend to backend, remove mock data (Frontend Developer) — P1 — blocked on MIKK-13.
+  - MIKK-15 P2-06 AI assistant with real Azure OpenAI + RAG + seeded docs (AI Engineer) — P2 — blocked on MIKK-10.
+  - MIKK-16 P2-07 Manager overview on real data (Full-Stack Developer) — P2 — blocked on MIKK-13.
+  - MIKK-17 P2-08 QA cycle for Phase 2 (Test-Agent) — P2 — after feature work lands on `develop`.
+- Decisions / scope:
+  - Priority split: P1 = foundation + data flow (auth → real API → UI wiring); P2 = AI grounding, manager view, QA.
+  - Deploy target for all Phase 2 work: `develop` branch. `main` stays reserved for production.
+  - Secrets (connection strings, API keys, client secrets) never committed; `.env.example` documents names only.
+- Open questions / blockers (need product decision before MIKK-10 runs):
+  - Who owns the Azure subscription / which Azure tenant & subscription ID should resources be provisioned in (Sopra Steria tenant vs dev subscription)?
+  - Scope of the next demo: full vertical slice (auth → dashboard on real data) vs certifications-only slice without auth.
