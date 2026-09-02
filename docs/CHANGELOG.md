@@ -173,3 +173,25 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - No new commit/SHA was produced by this task; `develop` remains at `5d4e6c6` (already on `origin/develop` prior to this run).
 - Open questions / risks:
   - None — merge and tests confirmed green on `develop` as-is.
+
+## 2026-09-02 — MIKK-28: Redesign Career Path around Level 1–4 (replace consulting titles)
+
+- Component: frontend
+- Issue/ref: MIKK-28
+- What was done:
+  - Replaced the old career ladder (Consultant → Senior Consultant → Principal Consultant → Enterprise Architect) with **Level 1–4** across the app: `data/mock.ts` (`careerPath`, `currentUser.level`/`nextLevel`, `dashboardStats`), `types/index.ts` (`CareerLevel` gained `requirementMode: 'all' | 'choose' | 'holistic'`, `requirementNote`, `chooseAtLeast`, `focusAreas`; dropped `role`/`yearsExperience`), `CareerPath.tsx`, `Dashboard.tsx`, `AiAssistant.tsx` canned replies, and `translations.ts` (EN/NO).
+  - New certification catalog (`data/mock.ts`) matching the reference roadmap image supplied on the issue: Level 1 = hold all 4 (AZ-104, SC-300, Terraform Associate, Sopra Steria Navigator Foundation); Level 2 = choose ≥2 of 13 (AI-103, AI-200, AZ-800, AZ-700, SC-401, SC-200, SC-500, CKS, CKA, Terraform Professional, GH-500, GH-200, GH-300); Level 3 = choose ≥2 of 6 (AZ-305, AZ-400, SC-100, AB-100, MS-102, SC-730); Level 4 = no certification list, qualitative `focusAreas` (business impact, architecture leadership, innovation, CAF experience, Business Owner approval). Mock progress: Level 1 & 2 completed, Level 3 current (AZ-305 in progress 62%, 0/2 chosen), Level 4 upcoming.
+  - `CareerPath.tsx` is now interactive: a new shared `LevelRoadmap` component (`components/ui.tsx`) renders the 4 levels as clickable chips with status icons (✓ completed / clock = current / circle = upcoming) connected by arrows, highlighting the real current level. Clicking a chip swaps the main detail panel (`LevelDetail`) to show that level's requirement rule (hold-all vs. choose-at-least-N vs. holistic) and its certification checklist (or focus-area list for Level 4). The sidebar (next-level readiness, missing requirements, fast summary) always reflects the user's **actual** current level regardless of which level is selected for viewing.
+  - `Dashboard.tsx`: hero card now derives "current → next" level generically (`careerPath.find(l => l.status === 'current')`) instead of a hardcoded id/title; added a new "Your career roadmap" card reusing `LevelRoadmap` (read-only, links to `/career`); the "Certification progress" card and top-row "Level certifications" stat are now computed from the certification catalog instead of hardcoded magic numbers.
+  - Updated remaining "Principal/Senior Consultant" copy for consistency: `AiAssistant.tsx` suggestion chips/canned replies/context blurb, and `competencies.summary` (EN/NO) now reference Level 3/4 instead of consulting titles.
+  - Added CSS for `.level-roadmap` / `.level-chip` (status-aware colors, selected state) and `.level-detail`/`.level-req-head` note row (`components/app.css`).
+- Decision/notes:
+  - Reference screenshot attached to the issue used `AZ-802` for one Level 2 item; the issue's written text says `AZ-800` (Windows Server Hybrid Administrator Associate) — implemented per the written issue text since it is the authoritative instruction. Flagging in case Product Owner meant AZ-802 specifically.
+  - Kept `currentUser.role` as a free-text job title (`Cloud Solutions Consultant`) distinct from `currentUser.level` (`Level 3`) — real job titles and the new Level 1–4 scale are orthogonal now; only the level scale was in scope for this issue.
+  - Certifications not tied to any level (`AZ-900`, `AZ-204`, `AZ-500`, `DP-203`, `AI-102`) were kept in the catalog as historical/optional-specialisation entries (`requiredFor: []` or `Specialisation: ...`) rather than deleted, so completed-certification history on Certifications/Profile pages isn't lost.
+  - Added 3 new certification categories (`Infrastructure`, `Collaboration`, `Internal`) to `Certifications.tsx`'s category filter to cover Terraform/Kubernetes, GitHub, and the internal Navigator cert.
+  - `requirementMode`/`chooseAtLeast`/`requirementNote`/`focusAreas` are hand-authored per level in mock data (not derived from the certifications array) — consistent with the existing mock-data-only pattern in this codebase (no backend wiring yet, per MIKK-3/MIKK-14 decisions).
+  - Verified with `tsc -b` + `vite build` (clean) and `oxlint` (only pre-existing warnings, no new ones); visually verified Dashboard, Career Path (Level 1/3/4 selected), Certifications and Profile pages via a local Playwright screenshot pass.
+- Open questions / risks:
+  - No automated tests exist for this frontend yet (repo-wide, pre-existing gap) — recommend Test-Agent add coverage for the new level-selection interaction on Career Path when a test suite is introduced.
+  - `AZ-800` vs `AZ-802` discrepancy above should be confirmed with Product Owner if the reference image is meant to be authoritative over the issue text.

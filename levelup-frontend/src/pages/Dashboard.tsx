@@ -6,12 +6,14 @@ import {
   CardHead,
   Icon,
   LevelDots,
+  LevelRoadmap,
   PageHead,
   ProgressBar,
   StatCard,
 } from '../components/ui'
 import {
   careerPath,
+  certifications,
   competencyAreas,
   currentUser,
   dashboardStats,
@@ -28,7 +30,10 @@ const impactIcon: Record<string, string> = {
 export default function Dashboard() {
   const { t } = useLanguage()
   const stats = [...dashboardStats]
-  const principal = careerPath.find((l) => l.id === 'principal')!
+  const currentLevel = careerPath.find((l) => l.status === 'current')!
+  const currentIndex = careerPath.findIndex((l) => l.id === currentLevel.id)
+  const nextLevel = careerPath[currentIndex + 1]
+  const completedCerts = certifications.filter((c) => c.status === 'completed').length
 
   return (
     <div>
@@ -48,20 +53,33 @@ export default function Dashboard() {
         <div className="next-level-card">
           <div className="next-label">{t('dashboard.progressToNext')}</div>
           <div className="next-title">
-            {currentUser.level} → Principal Consultant
+            {currentLevel.name} → {nextLevel?.name ?? '—'}
           </div>
-          <ProgressBar value={principal.progress} />
+          <ProgressBar value={currentLevel.progress} />
           <div className="next-meta">
-            <span>{t('career.percentComplete', { value: principal.progress })}</span>
+            <span>{t('career.percentComplete', { value: currentLevel.progress })}</span>
             <span>
               {t('dashboard.requirementsMet', {
-                met: principal.requirements.filter((r) => r.met).length,
-                total: principal.requirements.length,
+                met: currentLevel.requirements.filter((r) => r.met).length,
+                total: currentLevel.requirements.length,
               })}
             </span>
           </div>
         </div>
       </div>
+
+      {/* Level roadmap overview */}
+      <Card className="mb-16">
+        <CardHead
+          title={t('career.roadmap')}
+          icon="level"
+          link="/career"
+          linkLabel={t('dashboard.careerPathLink')}
+        />
+        <div style={{ padding: '4px 20px 20px' }}>
+          <LevelRoadmap levels={careerPath} selectedId={currentLevel.id} />
+        </div>
+      </Card>
 
       {/* Stats */}
       <div className="grid grid-4 mb-16">
@@ -147,8 +165,8 @@ export default function Dashboard() {
             </div>
             <p style={{ fontSize: 13.5, color: 'var(--text)' }}>
               Based on your profile, the highest-impact move is to complete{' '}
-              <strong>AZ-305</strong> and book the <strong>SC-300</strong>{' '}
-              security certification to unlock Principal Consultant.
+              <strong>AZ-305</strong> and choose one more {currentLevel.name} certification —
+              that alone satisfies {currentLevel.name} and puts {nextLevel?.name ?? 'the next level'} within reach.
             </p>
             <div className="mt-16">
               <Link to="/assistant" className="btn btn-primary btn-sm">
@@ -161,10 +179,10 @@ export default function Dashboard() {
           <Card>
             <CardHead title={t('dashboard.certificationProgress')} icon="cert" link="/certifications" linkLabel={t('dashboard.allLink')} />
             <div style={{ padding: '8px 20px 20px' }}>
-              <ProgressBar value={66} />
+              <ProgressBar value={Math.round((completedCerts / certifications.length) * 100)} />
               <div className="progress-label" style={{ marginTop: 8 }}>
-                <span>{t('dashboard.completed', { done: 8, total: 12 })}</span>
-                <span className="val">66%</span>
+                <span>{t('dashboard.completed', { done: completedCerts, total: certifications.length })}</span>
+                <span className="val">{Math.round((completedCerts / certifications.length) * 100)}%</span>
               </div>
             </div>
           </Card>

@@ -36,16 +36,31 @@ export interface CompetencyEntry {
   previous: SelfAssessmentLevel
 }
 
+/** How a level's certification requirements should be interpreted. */
+export type LevelRequirementMode =
+  | 'all' // hold every certification listed
+  | 'choose' // hold at least `chooseAtLeast` of the listed certifications
+  | 'holistic' // no fixed certification list — qualitative expectations (see focusAreas)
+
 export interface CareerLevel {
   id: string
+  /** Display name, e.g. "Level 1" */
   name: string
-  role: string
+  /** Short one-line descriptor shown under the name, e.g. "Foundation" */
+  tagline: string
   description: string
-  yearsExperience: string
   color: string
   progress: number
   status: 'current' | 'completed' | 'upcoming'
+  requirementMode: LevelRequirementMode
+  /** Human-readable summary of the requirement rule, e.g. "Choose at least 2 of 13 certifications" */
+  requirementNote: string
+  /** Minimum number of certifications required when requirementMode === 'choose' */
+  chooseAtLeast?: number
+  /** Certification checklist for this level (empty for 'holistic' levels) */
   requirements: Requirement[]
+  /** Qualitative expectations for 'holistic' levels (e.g. Level 4) */
+  focusAreas?: string[]
 }
 
 export interface Requirement {
