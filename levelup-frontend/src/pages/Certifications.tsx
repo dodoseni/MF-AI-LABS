@@ -7,8 +7,9 @@ import {
   ProgressBar,
   StatCard,
 } from '../components/ui'
-import { certifications } from '../data/mock'
-import type { CertificationStatus } from '../types'
+import { certifications as initialCertifications } from '../data/mock'
+import type { Certification, CertificationStatus } from '../types'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const statusTone: Record<CertificationStatus, string> = {
   completed: 'success',
@@ -17,53 +18,97 @@ const statusTone: Record<CertificationStatus, string> = {
   recommended: 'violet',
 }
 
-const filterOptions: { key: CertificationStatus | 'all'; label: string }[] = [
-  { key: 'all', label: 'All' },
-  { key: 'completed', label: 'Completed' },
-  { key: 'in-progress', label: 'In progress' },
-  { key: 'missing', label: 'Missing' },
-  { key: 'recommended', label: 'Recommended' },
-]
+const categories = ['Cloud Platform', 'Development', 'Security', 'Data & AI', 'DevOps', 'Architecture']
 
 export default function Certifications() {
+  const { t } = useLanguage()
+  const [certifications, setCertifications] = useState<Certification[]>(initialCertifications)
   const [filter, setFilter] = useState<CertificationStatus | 'all'>('all')
+  const [category, setCategory] = useState('all')
   const [search, setSearch] = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ name: '', issuer: '', category: categories[0] })
+
+  const filterOptions: { key: CertificationStatus | 'all'; label: string }[] = [
+    { key: 'all', label: t('certifications.filter.all') },
+    { key: 'completed', label: t('certifications.filter.completed') },
+    { key: 'in-progress', label: t('certifications.filter.inProgress') },
+    { key: 'missing', label: t('certifications.filter.missing') },
+    { key: 'recommended', label: t('certifications.filter.recommended') },
+  ]
 
   const completed = certifications.filter((c) => c.status === 'completed').length
-  const inProgress = certifications.filter(
-    (c) => c.status === 'in-progress',
-  ).length
+  const inProgress = certifications.filter((c) => c.status === 'in-progress').length
   const missing = certifications.filter((c) => c.status === 'missing').length
+  const recommendedCount = certifications.filter((c) => c.status === 'recommended').length
 
   const filtered = certifications.filter((c) => {
     const matchesFilter = filter === 'all' || c.status === filter
+    const matchesCategory = category === 'all' || c.category === category
     const q = search.trim().toLowerCase()
     const matchesSearch =
       !q ||
       c.name.toLowerCase().includes(q) ||
       c.issuer.toLowerCase().includes(q) ||
       c.category.toLowerCase().includes(q)
-    return matchesFilter && matchesSearch
+    return matchesFilter && matchesCategory && matchesSearch
   })
+
+  function updateStatus(id: string, status: CertificationStatus) {
+    setCertifications((prev) =>
+      prev.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              status,
+              progress: status === 'in-progress' ? c.progress ?? 10 : c.progress,
+              earnedDate:
+                status === 'completed'
+                  ? c.earnedDate ?? new Date().toISOString().slice(0, 10)
+                  : c.earnedDate,
+            }
+          : c,
+      ),
+    )
+  }
+
+  function addCertification() {
+    if (!form.name.trim()) return
+    const id = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const newCert: Certification = {
+      id: `${id}-${Date.now()}`,
+      name: form.name.trim(),
+      issuer: form.issuer.trim() || 'Custom',
+      status: 'in-progress',
+      category: form.category,
+      level: 'Associate',
+      progress: 0,
+      requiredFor: [],
+      description: 'Manually added certification.',
+    }
+    setCertifications((prev) => [newCert, ...prev])
+    setForm({ name: '', issuer: '', category: categories[0] })
+    setShowModal(false)
+  }
 
   return (
     <div>
       <PageHead
-        title="Certifications"
-        subtitle="Track your certification progress, discover required and recommended certifications, and add new ones."
+        title={t('title.certifications')}
+        subtitle={t('certifications.subtitle')}
         actions={
-          <Button>
+          <Button onClick={() => setShowModal(true)}>
             <Icon name="plus" size={16} />
-            Add certification
+            {t('common.addCertification')}
           </Button>
         }
       />
 
       <div className="grid grid-4 mb-16">
-        <StatCard icon="cert" label="Completed" value={completed} detail={`of ${certifications.length} tracked`} tone="success" />
-        <StatCard icon="clock" label="In progress" value={inProgress} detail="actively studying" tone="info" />
-        <StatCard icon="alert" label="Missing" value={missing} detail="required for next level" tone="warning" />
-        <StatCard icon="sparkle" label="Recommended" value={recommendedCount} detail="based on your goals" tone="violet" />
+        <StatCard icon="cert" label={t('certifications.stat.completed')} value={completed} detail={t('certifications.stat.completedDetail', { total: certifications.length })} tone="success" />
+        <StatCard icon="clock" label={t('certifications.stat.inProgress')} value={inProgress} detail={t('certifications.stat.inProgressDetail')} tone="info" />
+        <StatCard icon="alert" label={t('certifications.stat.missing')} value={missing} detail={t('certifications.stat.missingDetail')} tone="warning" />
+        <StatCard icon="sparkle" label={t('certifications.stat.recommended')} value={recommendedCount} detail={t('certifications.stat.recommendedDetail')} tone="violet" />
       </div>
 
       <div className="toolbar mb-16">
@@ -71,7 +116,7 @@ export default function Certifications() {
           <Icon name="search" size={17} />
           <input
             type="text"
-            placeholder="Search certifications..."
+            placeholder={t('certifications.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -90,12 +135,13 @@ export default function Certifications() {
         <div className="spacer" />
         <div className="field">
           <Icon name="filter" size={17} />
-          <select defaultValue="all">
-            <option value="all">All categories</option>
-            <option value="cloud">Cloud Platform</option>
-            <option value="dev">Development</option>
-            <option value="sec">Security</option>
-            <option value="ai">Data & AI</option>
+          <select value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="all">{t('certifications.category.all')}</option>
+            {categories.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -109,7 +155,7 @@ export default function Certifications() {
                 <div className="cert-name">{c.name}</div>
               </div>
               <Badge tone={statusTone[c.status]} dot>
-                {c.status}
+                {t(`common.status.${c.status}` as const)}
               </Badge>
             </div>
             <p className="cert-desc">{c.description}</p>
@@ -117,7 +163,7 @@ export default function Certifications() {
             {c.status === 'in-progress' && (
               <div>
                 <div className="progress-label">
-                  <span>Progress</span>
+                  <span>{t('certifications.progress')}</span>
                   <span className="val">{c.progress}%</span>
                 </div>
                 <ProgressBar value={c.progress ?? 0} tone="violet" />
@@ -127,20 +173,30 @@ export default function Certifications() {
             <div className="cert-tags">
               <Badge tone="gray">{c.category}</Badge>
               {c.requiredFor.length > 0 && (
-                <Badge tone="blue">Required: {c.requiredFor.join(', ')}</Badge>
+                <Badge tone="blue">{t('certifications.required', { levels: c.requiredFor.join(', ') })}</Badge>
               )}
               {c.earnedDate && (
-                <Badge tone="neutral">Earned {formatDate(c.earnedDate)}</Badge>
+                <Badge tone="neutral">{t('certifications.earned', { date: formatDate(c.earnedDate) })}</Badge>
               )}
             </div>
 
             <div className="cert-footer">
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                {c.status === 'completed' ? 'Certification valid' : 'Track'}
+                {c.status === 'completed' ? t('certifications.valid') : t('certifications.track')}
               </span>
-              <Button size="sm" variant={c.status === 'completed' ? 'secondary' : 'primary'}>
-                {c.status === 'completed' ? 'View details' : 'Start tracking'}
-              </Button>
+              {c.status === 'completed' ? (
+                <Button size="sm" variant="secondary">
+                  {t('certifications.viewDetails')}
+                </Button>
+              ) : c.status === 'in-progress' ? (
+                <Button size="sm" onClick={() => updateStatus(c.id, 'completed')}>
+                  {t('certifications.markCompleted')}
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => updateStatus(c.id, 'in-progress')}>
+                  {t('certifications.startTracking')}
+                </Button>
+              )}
             </div>
           </div>
         ))}
@@ -148,17 +204,65 @@ export default function Certifications() {
 
       {filtered.length === 0 && (
         <div className="card card-pad center" style={{ paddingBlock: 48 }}>
-          <p style={{ color: 'var(--text-secondary)' }}>
-            No certifications match your current filters.
-          </p>
+          <p style={{ color: 'var(--text-secondary)' }}>{t('certifications.empty')}</p>
+        </div>
+      )}
+
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>{t('certifications.modal.title')}</h3>
+              <button type="button" className="modal-close" onClick={() => setShowModal(false)} aria-label={t('common.close')}>
+                <Icon name="close" size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <label className="modal-field">
+                <span>{t('certifications.modal.name')}</span>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  placeholder="e.g. AZ-500"
+                  autoFocus
+                />
+              </label>
+              <label className="modal-field">
+                <span>{t('certifications.modal.issuer')}</span>
+                <input
+                  type="text"
+                  value={form.issuer}
+                  onChange={(e) => setForm((f) => ({ ...f, issuer: e.target.value }))}
+                  placeholder="Microsoft"
+                />
+              </label>
+              <label className="modal-field">
+                <span>{t('certifications.modal.category')}</span>
+                <select
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                >
+                  {categories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <div className="modal-footer">
+              <Button variant="secondary" onClick={() => setShowModal(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button onClick={addCertification}>{t('certifications.modal.add')}</Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
   )
 }
-
-const recommendedCount =
-  certifications.filter((c) => c.status === 'recommended').length
 
 function formatDate(iso: string) {
   const d = new Date(iso)

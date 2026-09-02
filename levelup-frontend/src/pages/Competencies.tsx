@@ -1,5 +1,6 @@
 import { Badge, Card, Icon, LevelDots, PageHead } from '../components/ui'
 import { competencyAreas } from '../data/mock'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const areaAbbrev: Record<string, string> = {
   Sales: 'S',
@@ -118,6 +119,7 @@ function RadarChart() {
 }
 
 export default function Competencies() {
+  const { t } = useLanguage()
   const avgCurrent =
     Math.round(
       (competencyAreas.reduce((s, c) => s + c.current, 0) /
@@ -134,8 +136,8 @@ export default function Competencies() {
   return (
     <div>
       <PageHead
-        title="Competency Development"
-        subtitle="Self-assess your level across Sopra Steria’s five competency areas and track your growth over time."
+        title={t('title.competencies')}
+        subtitle={t('competencies.subtitle')}
         actions={
           <button
             type="button"
@@ -143,7 +145,7 @@ export default function Competencies() {
             onClick={() => alert('Self-assessment form opened (mock)')}
           >
             <Icon name="comp" size={16} />
-            Update self-assessment
+            {t('competencies.updateAssessment')}
           </button>
         }
       />
@@ -182,10 +184,10 @@ export default function Competencies() {
                   </div>
                   {growth > 0 ? (
                     <span className="growth-badge">
-                      <Icon name="trendUp" size={13} />+{growth} this review
+                      <Icon name="trendUp" size={13} />+{growth} {t('competencies.sinceReview')}
                     </span>
                   ) : (
-                    <Badge tone="gray">No change</Badge>
+                    <Badge tone="gray">{t('competencies.noChange')}</Badge>
                   )}
                 </div>
                 <div className="comp-scale">
@@ -232,7 +234,7 @@ export default function Competencies() {
                     color: 'var(--text-muted)',
                   }}
                 >
-                  <span>target level</span>
+                  <span>{t('competencies.targetLevel')}</span>
                   <LevelDots current={c.current} target={c.target} />
                 </div>
               </div>
@@ -258,17 +260,14 @@ export default function Competencies() {
               >
                 <Icon name="trendUp" size={18} style={{ color: 'var(--brand-600)' }} />
                 <span style={{ fontWeight: 700, color: 'var(--text-strong)' }}>
-                  Overall self-assessment
+                  {t('competencies.overall')}
                 </span>
                 <Badge tone="blue">
                   {avgCurrent} / {avgTarget}
                 </Badge>
               </div>
               <p style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>
-                You are meeting your target in Delivery and Develop. Focus your
-                development on <strong>Sales</strong> and{' '}
-                <strong>Entrepreneurship</strong> to reach Principal Consultant
-                readiness for the next review cycle.
+                {t('competencies.summary', { a: 'Sales', b: 'Entrepreneurship' })}
               </p>
             </div>
           </Card>

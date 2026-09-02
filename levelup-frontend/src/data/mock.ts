@@ -1,9 +1,11 @@
 import type {
+  CalendarEvent,
   CareerLevel,
   Certification,
   CompetencyEntry,
   DevelopmentGoal,
   RecommendedAction,
+  WeeklyPlanDay,
 } from '../types'
 
 export const currentUser = {
@@ -411,6 +413,29 @@ export const studyPlan: {
     completed: false,
     type: 'practice',
   },
+]
+
+export const weeklyStudyPlan: WeeklyPlanDay[] = [
+  { day: 'Monday', items: ['AZ-305: Design identity & governance — Module 1'] },
+  { day: 'Wednesday', items: ['AZ-305: Design data storage — Module 2'] },
+  { day: 'Friday', items: ['Hands-on practice lab (Azure sandbox)'] },
+  { day: 'Sunday', items: ['Weekly quiz + recap'] },
+]
+
+export const calendarEvents: CalendarEvent[] = [
+  { id: 'e1', date: '2026-09-07', title: 'AZ-305: Design identity & governance — Module 1', type: 'study' },
+  { id: 'e2', date: '2026-09-09', title: 'AZ-305: Design data storage — Module 2', type: 'study' },
+  { id: 'e3', date: '2026-09-11', title: 'Hands-on practice lab', type: 'study' },
+  { id: 'e4', date: '2026-09-13', title: 'Weekly quiz + recap', type: 'study' },
+  { id: 'e5', date: '2026-09-15', title: 'Complete AZ-305 Design module', type: 'milestone' },
+  { id: 'e6', date: '2026-09-30', title: 'Sales training workshop', type: 'study' },
+  { id: 'e7', date: '2026-10-15', title: 'AZ-305 practice exam — target 70%+', type: 'practice' },
+  { id: 'e8', date: '2026-10-15', title: 'Finish Azure DevOps course', type: 'study' },
+  { id: 'e9', date: '2026-11-01', title: 'Co-lead one proposal submission', type: 'milestone' },
+  { id: 'e10', date: '2026-11-15', title: 'Implement CI/CD on a demo project', type: 'study' },
+  { id: 'e11', date: '2026-11-30', title: 'AZ-305 certification exam', type: 'exam' },
+  { id: 'e12', date: '2026-12-01', title: 'DevOps practices deep-dive due', type: 'milestone' },
+  { id: 'e13', date: '2026-12-15', title: 'Present at internal sales forum', type: 'milestone' },
 ]
 
 export const recommendedActions: RecommendedAction[] = [

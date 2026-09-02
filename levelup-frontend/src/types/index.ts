@@ -87,6 +87,20 @@ export interface ChatMessage {
   timestamp: string
 }
 
+export type CalendarEventType = 'study' | 'exam' | 'practice' | 'milestone'
+
+export interface CalendarEvent {
+  id: string
+  date: string
+  title: string
+  type: CalendarEventType
+}
+
+export interface WeeklyPlanDay {
+  day: string
+  items: string[]
+}
+
 export interface DashboardCardStat {
   icon: string
   label: string

@@ -1,4 +1,7 @@
+import { Link } from 'react-router-dom'
 import { Icon } from './Icon'
+import { useLanguage } from '../i18n/LanguageContext'
+import { languageNames, type Lang } from '../i18n/translations'
 
 export function Topbar({
   title,
@@ -7,6 +10,8 @@ export function Topbar({
   title: string
   onMenu?: () => void
 }) {
+  const { lang, setLang, t } = useLanguage()
+
   return (
     <header className="topbar">
       <button
@@ -19,16 +24,31 @@ export function Topbar({
       </button>
       <span className="topbar-title">{title}</span>
       <div className="topbar-spacer" />
-      <button type="button" className="topbar-icon-btn" aria-label="Search">
+
+      <label className="lang-select" aria-label={t('topbar.language')}>
+        <Icon name="globe" size={16} />
+        <select
+          value={lang}
+          onChange={(e) => setLang(e.target.value as Lang)}
+        >
+          {(Object.keys(languageNames) as Lang[]).map((code) => (
+            <option key={code} value={code}>
+              {languageNames[code]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <button type="button" className="topbar-icon-btn" aria-label={t('topbar.search')}>
         <Icon name="search" size={19} />
       </button>
-      <button type="button" className="topbar-icon-btn" aria-label="Notifications">
+      <button type="button" className="topbar-icon-btn" aria-label={t('topbar.notifications')}>
         <Icon name="bell" size={19} />
         <span className="badge-dot" />
       </button>
-      <button type="button" className="topbar-icon-btn" aria-label="Account">
+      <Link to="/profile" className="topbar-icon-btn" aria-label={t('topbar.account')}>
         <Icon name="user" size={19} />
-      </button>
+      </Link>
     </header>
   )
 }

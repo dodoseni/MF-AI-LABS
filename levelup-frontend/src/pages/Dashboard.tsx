@@ -17,6 +17,7 @@ import {
   dashboardStats,
   recommendedActions,
 } from '../data/mock'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const impactIcon: Record<string, string> = {
   high: 'alert',
@@ -25,18 +26,19 @@ const impactIcon: Record<string, string> = {
 }
 
 export default function Dashboard() {
+  const { t } = useLanguage()
   const stats = [...dashboardStats]
   const principal = careerPath.find((l) => l.id === 'principal')!
 
   return (
     <div>
       <PageHead
-        title={`Good to see you, ${currentUser.name.split(' ')[0]}`}
-        subtitle="Here’s an overview of your certifications, competencies and progress towards your next career level."
+        title={t('dashboard.greeting', { name: currentUser.name.split(' ')[0] })}
+        subtitle={t('dashboard.subtitle')}
         actions={
           <Button variant="secondary">
             <Icon name="plus" size={16} />
-            Log activity
+            {t('common.logActivity')}
           </Button>
         }
       />
@@ -44,14 +46,19 @@ export default function Dashboard() {
       {/* Hero / current level */}
       <div className="mb-16">
         <div className="next-level-card">
-          <div className="next-label">Progress to next level</div>
+          <div className="next-label">{t('dashboard.progressToNext')}</div>
           <div className="next-title">
             {currentUser.level} → Principal Consultant
           </div>
           <ProgressBar value={principal.progress} />
           <div className="next-meta">
-            <span>{principal.progress}% complete</span>
-            <span>{principal.requirements.filter((r) => r.met).length} of {principal.requirements.length} requirements met</span>
+            <span>{t('career.percentComplete', { value: principal.progress })}</span>
+            <span>
+              {t('dashboard.requirementsMet', {
+                met: principal.requirements.filter((r) => r.met).length,
+                total: principal.requirements.length,
+              })}
+            </span>
           </div>
         </div>
       </div>
@@ -69,10 +76,10 @@ export default function Dashboard() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <Card>
             <CardHead
-              title="Recommended next actions"
+              title={t('dashboard.recommendedActions')}
               icon="rocket"
               link="/career"
-              linkLabel="Career path"
+              linkLabel={t('dashboard.careerPathLink')}
             />
             <div style={{ marginTop: 8 }}>
               {recommendedActions.slice(0, 4).map((a) => (
@@ -103,7 +110,7 @@ export default function Dashboard() {
           </Card>
 
           <Card>
-            <CardHead title="Competency development" icon="comp" link="/competencies" linkLabel="All areas" />
+            <CardHead title={t('dashboard.competencyDevelopment')} icon="comp" link="/competencies" linkLabel={t('dashboard.allAreasLink')} />
             <div>
               {competencyAreas.map((c) => (
                 <div className="comp-row" key={c.area}>
@@ -136,7 +143,7 @@ export default function Dashboard() {
           <div className="ai-reco">
             <div className="ai-reco-head">
               <Icon name="sparkle" size={18} />
-              AI Recommendation
+              {t('dashboard.aiRecommendation')}
             </div>
             <p style={{ fontSize: 13.5, color: 'var(--text)' }}>
               Based on your profile, the highest-impact move is to complete{' '}
@@ -146,24 +153,24 @@ export default function Dashboard() {
             <div className="mt-16">
               <Link to="/assistant" className="btn btn-primary btn-sm">
                 <Icon name="brain" size={15} />
-                Open AI Assistant
+                {t('dashboard.openAssistant')}
               </Link>
             </div>
           </div>
 
           <Card>
-            <CardHead title="Certification progress" icon="cert" link="/certifications" linkLabel="All" />
+            <CardHead title={t('dashboard.certificationProgress')} icon="cert" link="/certifications" linkLabel={t('dashboard.allLink')} />
             <div style={{ padding: '8px 20px 20px' }}>
               <ProgressBar value={66} />
               <div className="progress-label" style={{ marginTop: 8 }}>
-                <span>8 of 12 completed</span>
+                <span>{t('dashboard.completed', { done: 8, total: 12 })}</span>
                 <span className="val">66%</span>
               </div>
             </div>
           </Card>
 
           <Card>
-            <CardHead title="Upcoming milestones" icon="calendar" link="/learning" linkLabel="Learning plan" />
+            <CardHead title={t('dashboard.upcomingMilestones')} icon="calendar" link="/learning" linkLabel={t('dashboard.learningPlanLink')} />
             <div style={{ padding: '4px 20px 16px' }}>
               {[
                 { date: 'Sep 15', label: 'Complete AZ-305 Design module', done: true },

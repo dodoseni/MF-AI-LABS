@@ -103,3 +103,22 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
 - Open questions / blockers (need product decision before MIKK-10 runs):
   - Who owns the Azure subscription / which Azure tenant & subscription ID should resources be provisioned in (Sopra Steria tenant vs dev subscription)?
   - Scope of the next demo: full vertical slice (auth → dashboard on real data) vs certifications-only slice without auth.
+
+## 2026-09-02 — MIKK-21: Close out the frontend experience (Profile, i18n, interactive Learning Plan & Certifications)
+
+- Component: frontend
+- Issue/ref: MIKK-21
+- What was done:
+  - Added a lightweight, dependency-free i18n layer (`src/i18n/translations.ts` + `LanguageContext.tsx`) with English and Norwegian dictionaries, a `useLanguage()` hook, and `localStorage` persistence (`levelup.lang`). A language selector was added to the `Topbar` (visible on every page) and mirrored as a preference control on the new Profile page.
+  - Translated all static UI chrome with the new `t()` helper: sidebar nav, topbar, page headers/subtitles, buttons, status badges, and card labels across Dashboard, Certifications, Competencies, Career Path, Learning Plan, AI Assistant and Profile.
+  - Built the missing **Profile** page (`src/pages/Profile.tsx`, route `/profile`, linked from the sidebar avatar and the topbar account icon): identity card, current level + progress-to-next-level, completed certifications list, active learning plans with progress bars, competency overview, and the language preference control.
+  - Made **Learning Plan** interactive per the spec: added a reusable `Calendar` component (`src/components/Calendar.tsx`) driven by a new `calendarEvents` mock dataset (study sessions, practice exams, certification exam date, milestones) with month navigation and a day-detail panel; added a "Weekly study plan" section from a new `weeklyStudyPlan` mock dataset (Mon/Wed/Fri/Sun cadence); converted goal milestones and study-plan tasks into `useState`-backed, clickable checklists so progress bars and percentages recompute live when a user checks something off.
+  - Made **Certifications** functional instead of decorative: "Add certification" now opens a modal that appends a real certification to local state; "Start tracking" / "Mark completed" buttons transition a certification's status (missing/recommended → in-progress → completed) instead of being static labels; the category filter is now wired to actual filtering.
+  - Added a `globe` icon and modal/calendar/weekly-plan CSS to `app.css`, keeping the existing design system (same tokens, card/button/badge patterns) rather than introducing new UI primitives.
+- Decision/notes:
+  - Scope decision on localization: full UI chrome (navigation, headers, buttons, statuses, empty states) is translated NO/EN. Mock *content* (certification names/descriptions, goal titles, AI reply text) is intentionally left in English for this pass — translating seed content would mean maintaining parallel mock datasets per language, which is a data/content decision better made once real content/CMS is in place.
+  - Calendar and certification/goal state are local `useState` (no persistence) — consistent with the rest of the app, which is fully mock-data driven with no backend wiring yet (per MIKK-3 decision). Wiring this to the real API is covered by the existing Phase 2 plan (MIKK-14).
+  - Did not touch the `Competencies` page's radar chart even though the issue's design guidance says to avoid radar charts/advanced analytics — that page and chart predate this issue (MIKK-3) and weren't in this issue's page list (Dashboard, Career Path, Certifications, Learning Plan, AI Coach, Profile). Flagging for Product Owner: worth a follow-up decision on whether to simplify Competencies to match the "avoid radar charts" guidance.
+- Open questions / risks:
+  - No automated tests added (repo has none for the frontend yet); verified via `tsc -b`, `vite build`, and `oxlint` (clean, pre-existing warnings only).
+  - Certification "Add" modal and status toggles, and Learning Plan checklists, only persist in component state (lost on refresh) — expected for a mock-data MVP, but worth flagging before QA treats it as a bug.
