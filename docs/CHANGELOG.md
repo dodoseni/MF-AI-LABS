@@ -227,3 +227,54 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - Left the unused `comp` icon definition in `components/Icon.tsx`'s icon registry (a generic named-icon map entry, harmless to keep, not competency-specific by itself) and the unrelated generic use of the word "competency" in the Kubernetes certification description (`mock.ts`) — neither is part of the Competency feature.
 - Open questions / risks:
   - None outstanding. Verified with `tsc -b` (clean), `vite build` (clean), `oxlint` (only the two pre-existing warnings unrelated to this change), and a local Playwright pass confirming no console/page errors and no remaining Competency UI on Dashboard, Profile, Career Path, Learning Plan and AI Assistant; `/competencies` now falls through to the existing wildcard route (renders Dashboard) since the route no longer exists.
+
+## 2026-09-02 — MIKK-38: Wire backend to Azure SQL via Managed Identity — Projects smoke-test endpoint
+
+- Component: backend
+- Issue/ref: MIKK-38 (depends on Data Engineer's `backend/sql/2026-09-02-projects-smoketest.sql`)
+- What was done:
+  - Added `mssql` (v10, bundles `tedious`) and `@azure/identity` to `backend/package.json`.
+  - New `backend/src/db/pool.js`: lazily-created, shared `mssql` connection pool using
+    `authentication: { type: 'azure-active-directory-default' }` — no connection string,
+    login, or password anywhere; token acquisition is delegated to
+    `DefaultAzureCredential`, which resolves the App Service's system-assigned Managed
+    Identity in Azure (and falls back to local `az login` for local dev).
+  - New `POST /api/projects` and `GET /api/projects`, following the existing
+    `routes -> controllers -> services -> repositories` layering used by the other five
+    endpoints: `routes/projects.js`, `controllers/projectsController.js`,
+    `services/projectsService.js` (name validation/trimming — 400 on missing/blank
+    `name`), `repositories/projectsRepository.js` (the only layer that talks to `mssql`;
+    `INSERT ... OUTPUT INSERTED.*` / `SELECT ... ORDER BY CreatedAt DESC` against
+    `dbo.Projects`).
+  - `POST /api/projects` returns `201` with `{ "data": { "id", "name", "createdAt" } }`;
+    `GET /api/projects` returns `200` with `{ "data": [...] }` — kept consistent with this
+    codebase's existing `{ "data": ... }` response-wrapping convention (other five
+    endpoints) rather than the issue's literal unwrapped example.
+  - `backend/tests/projects.test.js`: mocks `src/db/pool.js` (not real `mssql`/Azure SQL) —
+    covers 201 success + trimming, 400 on missing/blank name, and 500 propagation via the
+    existing centralized error handler. `npm test`: 8 suites / 17 tests, all green.
+  - Updated `backend/README.md`: new "Azure SQL connectivity" section, `/api/projects` rows
+    in the API table, project-structure diagram, and deployment notes (`SQL_SERVER` /
+    `SQL_DATABASE` App Settings requirement).
+- Decision/notes:
+  - Deviated from the issue's literal SQL (`INSERT ...; SELECT SCOPE_IDENTITY() AS Id;`):
+    used `INSERT ... OUTPUT INSERTED.Id, INSERTED.Name, INSERTED.CreatedAt` instead, so the
+    returned `createdAt` is the exact value SQL Server generated via the column's
+    `DEFAULT SYSUTCDATETIME()`, in one round trip, rather than needing a second query or an
+    app-computed timestamp.
+  - No Key Vault involvement, per the issue's explicit instruction — this auth mode has no
+    secret to store; `Hemmelig-safe` stays reserved for a genuinely secret value in future.
+  - `SQL_SERVER` / `SQL_DATABASE` are plain App Service Application Settings, not secrets.
+  - `/api/projects` is the only Azure SQL-backed endpoint in `backend/`; all five prior
+    endpoints remain intentionally mock-data-backed (unrelated, out of scope here).
+- Open questions / risks:
+  - **Not yet verified end-to-end against live Azure SQL** — blocked on the four infra
+    preconditions the Data Engineer flagged (Managed Identity ON for `levelup-api-dev`,
+    the smoke-test SQL script run by an AAD admin, SQL firewall allowing App Service
+    traffic, `SQL_SERVER`/`SQL_DATABASE` App Settings added). Code + tests are complete and
+    green; someone with AAD-admin/Portal access needs to complete those four steps, then a
+    `POST /api/projects` against the deployed `levelup-api-dev` + a `SELECT * FROM
+    dbo.Projects` should be re-run to close out the original acceptance criteria.
+  - `dbo.Projects` is a disposable smoke-test table, deliberately separate from the real
+    LevelUp data model (`user_certification`, competencies, career levels — a distinct,
+    not-yet-started effort per the 2026-09-02 reset entry above).

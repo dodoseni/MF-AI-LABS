@@ -1,9 +1,13 @@
 # LevelUp Backend
 
-Express.js backend for the LevelUp platform. It exposes read-only REST API contracts for
-the frontend, currently backed by **local mock data**. Authentication, Azure SQL, and
+Express.js backend for the LevelUp platform. Most endpoints expose read-only REST API
+contracts for the frontend, currently backed by **local mock data**. Authentication and
 AI/Foundry integration are intentionally out of scope for this stage and will be built as
 separate, tracked follow-up work.
+
+`/api/projects` (MIKK-38) is the exception: it is a real, Azure SQL-backed smoke-test
+endpoint pair proving the connectivity chain Backend API -> Azure SQL, using passwordless
+Azure AD auth via the App Service's Managed Identity — see "Azure SQL connectivity" below.
 
 ## Required Node version
 
@@ -52,10 +56,11 @@ accidental contract changes are caught.
 
 ## API
 
-All endpoints are read-only (`GET` only). Successful responses are `HTTP 200` JSON; list
-endpoints wrap their payload as `{ "data": [...] }`, single-resource endpoints as
-`{ "data": {...} }`. Unknown routes return `HTTP 404` with `{ "error": "Not Found" }`;
-unexpected errors are handled by the centralized error handler in `src/app.js`.
+Most endpoints are read-only (`GET` only) and mock-data-backed. Successful responses are
+`HTTP 200` JSON; list endpoints wrap their payload as `{ "data": [...] }`, single-resource
+endpoints as `{ "data": {...} }`. Unknown routes return `HTTP 404` with
+`{ "error": "Not Found" }`; unexpected errors are handled by the centralized error handler
+in `src/app.js`.
 
 | Method | Path | Description | Shape |
 |---|---|---|---|
@@ -65,6 +70,50 @@ unexpected errors are handled by the centralized error handler in `src/app.js`.
 | GET | `/api/competencies` | The five competency areas (current/target/previous self-assessment levels). | `{ "data": [ ...competencies ] }` |
 | GET | `/api/career-levels` | Career roadmap Level 1 → Level 4, in progression order, each with `requirementMode` (`all`/`choose`/`holistic`), `requirementNote`, `chooseAtLeast` (when `choose`), `requirements`, and `focusAreas` (when `holistic`). | `{ "data": [ ...careerLevels ] }` |
 | GET | `/api/learning-plan` | The user's learning plan: development goals (+ milestones), study tasks, weekly plan, calendar events. | `{ "data": { "goals": [...], "tasks": [...], "weeklyPlan": [...], "calendar": [...] } }` |
+| POST | `/api/projects` | **Azure SQL-backed (not mock).** Body `{ "name": string }`. Inserts into `dbo.Projects` and returns the persisted row. `400` if `name` is missing/blank. | `201` → `{ "data": { "id": number, "name": string, "createdAt": string } }` |
+| GET | `/api/projects` | **Azure SQL-backed (not mock).** All projects, most recently created first. | `{ "data": [ { "id", "name", "createdAt" }, ... ] }` |
+
+## Azure SQL connectivity (`/api/projects`, MIKK-38)
+
+`/api/projects` is a deliberately minimal smoke-test endpoint pair proving the connectivity
+chain **Backend API (`levelup-api-dev`) -> Azure SQL** end-to-end, using **passwordless Azure
+AD auth** via the App Service's system-assigned Managed Identity — no SQL login, password,
+or Key Vault secret is involved anywhere in this path (there is no secret to protect).
+
+- **Connection module**: `src/db/pool.js` — a lazily-created, shared `mssql` connection pool
+  using `authentication: { type: 'azure-active-directory-default' }`. This delegates token
+  acquisition to `DefaultAzureCredential` (via `@azure/identity`, used internally by the
+  `tedious` driver), which resolves the App Service's Managed Identity automatically in
+  Azure, or falls back to local `az login` credentials for local dev (provided the
+  developer's AAD account also has database access).
+- **Data flow**: `routes/projects.js` -> `controllers/projectsController.js` ->
+  `services/projectsService.js` (name validation/trimming) ->
+  `repositories/projectsRepository.js` (the only layer that talks to `mssql`).
+- **Table**: `dbo.Projects (Id INT IDENTITY, Name NVARCHAR(200), CreatedAt DATETIME2 DEFAULT
+  SYSUTCDATETIME())`, provisioned by `backend/sql/2026-09-02-projects-smoketest.sql`
+  (Data Engineer, MIKK-38) — a scoped, disposable smoke-test table, intentionally separate
+  from the real LevelUp data model.
+- **Env vars** (plain App Service **Application Settings**, not secrets — no Key Vault
+  reference needed for this auth mode):
+  - `SQL_SERVER=mikkelrev.database.windows.net`
+  - `SQL_DATABASE=mikelrev`
+  Locally, export the same two variables (and run `az login` as an AAD principal that has
+  been granted DB access) before `npm start`; without them, `POST`/`GET /api/projects` will
+  fail to connect (all other endpoints are unaffected — they remain mock-data-backed).
+- **Tests**: `tests/projects.test.js` mocks `src/db/pool.js` (not the real `mssql`/Azure SQL)
+  so `npm test` never requires network access or a Managed Identity — consistent with how
+  every other endpoint here is unit-tested against a fake data layer.
+- **Deviation from the original spec**: the `INSERT` uses `OUTPUT INSERTED.Id,
+  INSERTED.Name, INSERTED.CreatedAt` instead of a separate `SELECT SCOPE_IDENTITY()` — this
+  returns the exact `CreatedAt` value SQL Server generated (via the column's `DEFAULT
+  SYSUTCDATETIME()`) in the same round trip, rather than requiring the app to compute or
+  re-query for it.
+- **Infra preconditions** (not this code's responsibility, tracked by Data Engineer/PO):
+  system-assigned Managed Identity turned on for `levelup-api-dev`; the smoke-test SQL
+  script run against `mikelrev` by an AAD admin; Azure SQL firewall allowing the App
+  Service to connect; `SQL_SERVER`/`SQL_DATABASE` App Settings added to `levelup-api-dev`.
+  Until all four are in place, `/api/projects` will fail at runtime in Azure even though
+  the code and tests here are complete and green.
 
 **Career levels (`/api/career-levels`).** The roadmap is `Level 1` (Foundation) → `Level 2`
 (Specialisation) → `Level 3` (Leadership track) → `Level 4` (Strategic impact), replacing the
@@ -89,6 +138,8 @@ backend/
   src/
     app.js               # Express app: middleware, routes, error handling
     server.js             # HTTP server bootstrap (PORT binding)
+    db/
+      pool.js              # Azure SQL connection pool (passwordless Azure AD auth)
     routes/                # Express routers — map path -> controller, no logic
       health.js
       profile.js
@@ -96,30 +147,36 @@ backend/
       competencies.js
       careerLevels.js
       learningPlan.js
+      projects.js
     controllers/           # req/res handling — call a service, shape the HTTP response
       profileController.js
       certificationsController.js
       competenciesController.js
       careerLevelsController.js
       learningPlanController.js
+      projectsController.js
     services/              # Business logic — currently pass-through to repositories
       profileService.js
       certificationsService.js
       competenciesService.js
       careerLevelsService.js
       learningPlanService.js
-    repositories/          # Data access — the ONLY layer that knows data is mocked.
-      profileRepository.js         #   Promise-based on purpose: a future Azure SQL
-      certificationsRepository.js  #   repository only needs to keep the same method
-      competenciesRepository.js    #   names/shapes for routes/controllers/services to
-      careerLevelsRepository.js    #   keep working unchanged.
-      learningPlanRepository.js
+      projectsService.js    # + name validation (the one service with real logic)
+    repositories/          # Data access — the ONLY layer that knows data is mocked
+      profileRepository.js         #   (or, for projectsRepository.js, real Azure SQL).
+      certificationsRepository.js  #   Promise-based on purpose: a future Azure SQL
+      competenciesRepository.js    #   repository only needs to keep the same method
+      careerLevelsRepository.js    #   names/shapes for routes/controllers/services to
+      learningPlanRepository.js    #   keep working unchanged.
+      projectsRepository.js        #   (Azure SQL-backed — see below)
     data/                  # Local mock datasets, aligned with levelup-frontend/src/data/mock.ts
       profile.js
       certifications.js
       competencies.js
       careerLevels.js
       learningPlan.js
+  sql/
+    2026-09-02-projects-smoketest.sql  # dbo.Projects table + Managed Identity DB user/grants
   tests/
     health.test.js
     profile.test.js
@@ -128,6 +185,7 @@ backend/
     careerLevels.test.js
     learningPlan.test.js
     notFound.test.js
+    projects.test.js
   package.json
 ```
 
@@ -144,9 +202,11 @@ backend/
 - App Service runs `npm install` automatically during deployment (Oryx build) and then
   the `start` script (`npm start`) to launch the app — no custom startup command is
   required as long as deployment targets the `backend/` directory as the app root.
-- No secrets or environment-specific configuration exist yet (no database, no auth, no AI
-  integration), so there is nothing to add to Application Settings beyond `PORT`, which
-  Azure sets automatically.
+- For `/api/projects` (MIKK-38) to work in Azure, add `SQL_SERVER` and `SQL_DATABASE` as
+  App Service **Application Settings** (see "Azure SQL connectivity" above) and ensure the
+  App Service's system-assigned Managed Identity is turned on. These are plain settings,
+  not secrets — no Key Vault reference is needed. No other endpoint requires configuration
+  beyond `PORT`, which Azure sets automatically.
 - CORS is currently open (`cors()` with no options) to keep local/frontend integration
   unblocked during early development. Restrict allowed origins before this reaches a
   shared or production environment.
