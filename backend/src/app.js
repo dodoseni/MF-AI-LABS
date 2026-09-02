@@ -7,6 +7,7 @@ const certificationsRouter = require('./routes/certifications');
 const competenciesRouter = require('./routes/competencies');
 const careerLevelsRouter = require('./routes/careerLevels');
 const learningPlanRouter = require('./routes/learningPlan');
+const projectsRouter = require('./routes/projects');
 
 function createApp() {
   const app = express();
@@ -22,6 +23,7 @@ function createApp() {
   app.use('/api', competenciesRouter);
   app.use('/api', careerLevelsRouter);
   app.use('/api', learningPlanRouter);
+  app.use('/api', projectsRouter);
 
   // 404 handler for unknown routes
   app.use((req, res) => {
