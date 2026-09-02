@@ -110,23 +110,26 @@ const en = {
   'competencies.sinceReview': 'this review',
   'competencies.targetLevel': 'target level',
   'competencies.summary':
-    'You are meeting your target in Delivery and Develop. Focus your development on {a} and {b} to reach Principal Consultant readiness for the next review cycle.',
+    'You are meeting your target in Delivery and Develop. Focus your development on {a} and {b} to reach Level 4 readiness for the next review cycle.',
 
   'career.subtitle':
     'See where you are today, what you need to reach the next level, and your full career roadmap at Sopra Steria.',
   'career.roadmap': 'Your career roadmap',
   'career.levelsCompleted': '{done} of {total} levels completed',
   'career.requirements': 'Requirements · {met} of {total}',
+  'career.chosenOf': '{count} of {needed} chosen',
   'career.toGo': '{count} to go',
   'career.nextReadiness': 'Next level readiness',
   'career.percentComplete': '{value}% complete',
   'career.estReadiness': 'Est. readiness: {date}',
   'career.missingRequirements': 'Missing requirements',
+  'career.allMet': 'All requirements for this level are met.',
   'career.fastSummary': 'Fast summary',
   'career.requirementsMet': 'Requirements met',
   'career.tip':
-    'Completing AZ-305 and SC-300 will push you to 90% readiness. Review these in the Certifications page.',
+    'Completing AZ-305 and one more Level 3 certification will push you to 100% readiness for Level 4. Review options in the Certifications page.',
   'career.met': 'met',
+  'career.selectHint': 'Select a level above to see its certification requirements in detail.',
 
   'learning.subtitle':
     'Set development goals, track milestones and follow study plans to grow your competencies and progress your career.',
@@ -280,23 +283,26 @@ const no: typeof en = {
   'competencies.sinceReview': 'siden forrige gjennomgang',
   'competencies.targetLevel': 'målnivå',
   'competencies.summary':
-    'Du oppfyller målet ditt innen Delivery og Develop. Fokuser utviklingen på {a} og {b} for å nå Principal Consultant-nivå til neste gjennomgang.',
+    'Du oppfyller målet ditt innen Delivery og Develop. Fokuser utviklingen på {a} og {b} for å nå nivå 4 til neste gjennomgang.',
 
   'career.subtitle':
     'Se hvor du er i dag, hva du trenger for å nå neste nivå, og hele karriereveien din hos Sopra Steria.',
   'career.roadmap': 'Din karrierevei',
   'career.levelsCompleted': '{done} av {total} nivåer fullført',
   'career.requirements': 'Krav · {met} av {total}',
+  'career.chosenOf': '{count} av {needed} valgt',
   'career.toGo': '{count} gjenstår',
   'career.nextReadiness': 'Klarhet for neste nivå',
   'career.percentComplete': '{value}% fullført',
   'career.estReadiness': 'Est. klar: {date}',
   'career.missingRequirements': 'Manglende krav',
+  'career.allMet': 'Alle krav for dette nivået er oppfylt.',
   'career.fastSummary': 'Rask oppsummering',
   'career.requirementsMet': 'Krav oppfylt',
   'career.tip':
-    'Å fullføre AZ-305 og SC-300 vil ta deg til 90 % klarhet. Se disse på sertifiseringssiden.',
+    'Å fullføre AZ-305 og én sertifisering til på nivå 3 vil ta deg til 100 % klarhet for nivå 4. Se alternativene på sertifiseringssiden.',
   'career.met': 'oppfylt',
+  'career.selectHint': 'Velg et nivå ovenfor for å se sertifiseringskravene i detalj.',
 
   'learning.subtitle':
     'Sett utviklingsmål, følg milepæler og følg studieplaner for å utvikle kompetansen og karrieren din.',
