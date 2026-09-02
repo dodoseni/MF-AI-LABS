@@ -194,19 +194,22 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - Verified with `tsc -b` + `vite build` (clean) and `oxlint` (only pre-existing warnings, no new ones); visually verified Dashboard, Career Path (Level 1/3/4 selected), Certifications and Profile pages via a local Playwright screenshot pass.
 - Open questions / risks:
   - No automated tests exist for this frontend yet (repo-wide, pre-existing gap) — recommend Test-Agent add coverage for the new level-selection interaction on Career Path when a test suite is introduced.
-  - `AZ-800` vs `AZ-802` discrepancy above should be confirmed with Product Owner if the reference image is meant to be authoritative over the issue text.
-## 2026-09-02 — MIKK-32: Simplify Dashboard — remove goals/recommendations/competency clutter
+
+## 2026-09-02 — MIKK-34: Update Certifications tab (favourites, remove custom-cert creation and top stat)
 
 - Component: frontend
-- Issue/ref: MIKK-32
+- Issue/ref: MIKK-34
 - What was done:
-  - Slimmed `Dashboard.tsx` down to the components explicitly listed as "Keep" in the issue: header (welcome + intro text), the "Progress to Next Level" hero card, and the "Current Level" / "Level certifications" statistic cards.
-  - Removed everything called out under "Remove": the "Recommended Next Actions" card (which surfaced Career Path / Study Plan / Certification recommendations), the "AI Recommendation" card and its "Open Assistant" entry point, the "Active Goals" and "Competencies" statistic cards, the "Competency Development" card (Sales/Delivery/Manage/Entrepreneurship/Develop breakdown + level dots + growth badges), and the "Upcoming Milestones" card (the dashboard's learning-plan section).
-  - Dropped now-unused imports/data from `Dashboard.tsx` (`competencyAreas`, `recommendedActions`, `LevelDots`, `Badge`, `react-router-dom` `Link`, the `impactIcon` map) and changed the stats grid from `grid-4` to the existing `grid-2` utility class (2 cards instead of 4).
+  - Removed the "Recommended" stat card (top-right of the 4-card summary row) — the certifications summary is now 3 cards (Completed / In progress / Missing); grid class switched from `grid-4` to the existing `grid-3`.
+  - Removed the "Add certification" button, its modal, and the `addCertification`/`form`/`showModal` state — users can no longer create arbitrary custom certifications from this page (`src/pages/Certifications.tsx`).
+  - Added a clickable star/favourite toggle to every certification card (top-right of the card header, next to the status badge). Favourited state is a `Set<string>` of certification ids persisted to `localStorage` (`levelup.favouriteCertifications`), following the same local-persistence pattern as the language preference (`LanguageContext`). Added a `star` icon to the shared `Icon` component (`src/components/Icon.tsx`) and `.cert-fav-btn`/`.cert-top-actions` styling (`components/app.css`).
+  - Added a new "Favourites" segmented-control tab next to "Missing"/"Recommended". Selecting it filters the grid to only certifications the user has starred, regardless of status, while still respecting the category filter and search box.
+  - Removed now-unused translation keys (`common.addCertification`, `certifications.stat.recommended(Detail)`, `certifications.modal.*`) and added `certifications.filter.favourites` and `certifications.favourite.add`/`.remove` (EN + NO) in `src/i18n/translations.ts`.
 - Decision/notes:
-  - Kept the "Certification progress" card (progress bar + X/Y completed, link to `/certifications`) and the "Your career roadmap" card (`LevelRoadmap`, added in MIKK-28) — neither was named in the issue's "Remove" list, and both are direct extensions of the explicitly-kept "Current Level"/"Certifications" hero content rather than the recommendation/goals/competency clutter the issue targets.
-  - Scope was limited to the Dashboard page only. The standalone `Competencies` page, its nav entry, and the `competencyAreas` / `recommendedActions` mock data were left untouched — they're still used by `Profile.tsx` and `Competencies.tsx`, and the issue body is scoped entirely to "Dashboard" (no mention of removing the Competencies page or nav item itself).
-  - No goals-specific UI existed outside the "Active Goals" stat card and learning-plan milestones (both removed); there is no separate "Goals" page in the app.
+  - Interpreted "Remove 'recommended' [card] in the top right" as the top-right **stat card** in the summary row (not the "Recommended" status filter tab or badge), since task 4 explicitly keeps "Recommended" as an existing tab that "Favourites" sits next to.
+  - Favourites are tracked independently of `CertificationStatus` (a cert can be `completed`/`in-progress`/`missing`/`recommended` **and** favourited at the same time), matching "view certifications they have favourited in other tabs."
+  - Chose to persist favourites in `localStorage` (unlike the rest of this mock-data page, which is in-memory `useState` only) since a favourites/bookmark list is expected to survive a refresh even before real backend wiring exists; this is a small, additive, backend-independent enhancement and doesn't conflict with the existing mock-data decision (MIKK-3/MIKK-21).
+  - Verified with `tsc -b` + `vite build` (clean) and `oxlint` (only the two pre-existing warnings, no new ones); visually verified via a local Playwright screenshot pass (summary row now 3 cards, star toggle fills gold and persists, Favourites tab shows only starred certs).
 - Open questions / risks:
-  - If the intent was also to delete the standalone `/competencies` page and nav link entirely (title says "Delete Competencies and goals"), that's a separate, larger change not covered here — flag to Product Owner if that's actually wanted, since it would also require touching `Sidebar.tsx`, `Profile.tsx`, routing, and translations.
-  - Verified with `tsc -b` (clean), `vite build` (clean), `oxlint` (only pre-existing warnings), and a local Playwright screenshot of the rendered Dashboard.
+  - No automated tests exist for this frontend yet (repo-wide, pre-existing gap).
+  - `AZ-800` vs `AZ-802` discrepancy above should be confirmed with Product Owner if the reference image is meant to be authoritative over the issue text.
