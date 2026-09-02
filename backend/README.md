@@ -60,11 +60,21 @@ unexpected errors are handled by the centralized error handler in `src/app.js`.
 | Method | Path | Description | Shape |
 |---|---|---|---|
 | GET | `/api/health` | Liveness check. | `{ "status": "ok" }` |
-| GET | `/api/profile` | The current mock user's profile (identity, level, office). | `{ "data": { ...profile } }` |
-| GET | `/api/certifications` | All certifications (status, category, level, progress, description). | `{ "data": [ ...certifications ] }` |
+| GET | `/api/profile` | The current mock user's profile (identity, `level`/`nextLevel` as `"Level N"`, office). | `{ "data": { ...profile } }` |
+| GET | `/api/certifications` | All certifications (status, category, level, progress, `requiredFor: ["Level 1".."Level 3"]`, description). | `{ "data": [ ...certifications ] }` |
 | GET | `/api/competencies` | The five competency areas (current/target/previous self-assessment levels). | `{ "data": [ ...competencies ] }` |
-| GET | `/api/career-levels` | Career path levels in progression order, each with its requirements. | `{ "data": [ ...careerLevels ] }` |
+| GET | `/api/career-levels` | Career roadmap Level 1 → Level 4, in progression order, each with `requirementMode` (`all`/`choose`/`holistic`), `requirementNote`, `chooseAtLeast` (when `choose`), `requirements`, and `focusAreas` (when `holistic`). | `{ "data": [ ...careerLevels ] }` |
 | GET | `/api/learning-plan` | The user's learning plan: development goals (+ milestones), study tasks, weekly plan, calendar events. | `{ "data": { "goals": [...], "tasks": [...], "weeklyPlan": [...], "calendar": [...] } }` |
+
+**Career levels (`/api/career-levels`).** The roadmap is `Level 1` (Foundation) → `Level 2`
+(Specialisation) → `Level 3` (Leadership track) → `Level 4` (Strategic impact), replacing the
+former consulting-title roadmap (Consultant / Senior Consultant / Principal Consultant /
+Enterprise Architect) as of MIKK-28. `requirementMode` describes how to read `requirements`:
+`'all'` (hold every listed certification — Level 1), `'choose'` (hold at least
+`chooseAtLeast` of the listed certifications — Level 2 and 3), or `'holistic'` (no fixed
+certification list; see `focusAreas` instead — Level 4). `certifications[].requiredFor`
+references these same `"Level 1"`.."Level 3"` values (Level 4 has no certification
+requirements).
 
 **Data is temporary mock data.** Every response currently comes from static objects/arrays
 in `src/data/`, wired through a repository layer (see below) rather than a database. This

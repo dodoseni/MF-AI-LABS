@@ -24,4 +24,24 @@ describe('GET /api/certifications', () => {
     expect(Array.isArray(cert.requiredFor)).toBe(true);
     expect(typeof cert.description).toBe('string');
   });
+
+  it('aligns requiredFor with the Level 1-4 career roadmap (MIKK-28)', async () => {
+    const res = await request(app).get('/api/certifications');
+
+    const requiredForValues = res.body.data.flatMap((cert) => cert.requiredFor);
+    const levelValues = requiredForValues.filter((value) => /^Level [1-4]$/.test(value));
+
+    // At least one certification is required for each of Level 1-3
+    // (Level 4 is holistic and has no certification requirements).
+    expect(levelValues).toEqual(expect.arrayContaining(['Level 1', 'Level 2', 'Level 3']));
+    // The old consulting-title requiredFor values must be gone.
+    expect(requiredForValues).not.toEqual(
+      expect.arrayContaining([
+        'Consultant',
+        'Senior Consultant',
+        'Principal Consultant',
+        'Enterprise Architect',
+      ])
+    );
+  });
 });

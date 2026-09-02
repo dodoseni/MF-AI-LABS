@@ -21,5 +21,11 @@ describe('GET /api/profile', () => {
     expect(typeof data.office).toBe('string');
     expect(typeof data.memberSince).toBe('string');
     expect(typeof data.avatarInitials).toBe('string');
+
+    // Level 1-4 roadmap (MIKK-28): level/nextLevel are "Level N", not a
+    // consulting title, and role is a distinct free-text job title.
+    expect(data.level).toMatch(/^Level [1-4]$/);
+    expect(data.nextLevel).toMatch(/^Level [1-4]$/);
+    expect(data.role).not.toBe(data.level);
   });
 });
