@@ -14,7 +14,6 @@ const en = {
   'nav.section.support': 'Support',
   'nav.dashboard': 'Dashboard',
   'nav.certifications': 'Certifications',
-  'nav.competencies': 'Competency',
   'nav.career': 'Career Path',
   'nav.learning': 'Learning Plan',
   'nav.assistant': 'AI Assistant',
@@ -29,7 +28,6 @@ const en = {
 
   'title.dashboard': 'Dashboard',
   'title.certifications': 'Certifications',
-  'title.competencies': 'Competency Development',
   'title.career': 'Career Path',
   'title.learning': 'Learning Plan',
   'title.assistant': 'AI Assistant',
@@ -57,11 +55,10 @@ const en = {
 
   'dashboard.greeting': 'Good to see you, {name}',
   'dashboard.subtitle':
-    "Here's an overview of your certifications, competencies and progress towards your next career level.",
+    "Here's an overview of your certifications and progress towards your next career level.",
   'dashboard.progressToNext': 'Progress to next level',
   'dashboard.requirementsMet': '{met} of {total} requirements met',
   'dashboard.recommendedActions': 'Recommended next actions',
-  'dashboard.competencyDevelopment': 'Competency development',
   'dashboard.aiRecommendation': 'AI Recommendation',
   'dashboard.openAssistant': 'Open AI Assistant',
   'dashboard.certificationProgress': 'Certification progress',
@@ -106,16 +103,6 @@ const en = {
   'certifications.modal.status': 'Status',
   'certifications.modal.add': 'Add certification',
 
-  'competencies.subtitle':
-    "Self-assess your level across Sopra Steria's five competency areas and track your growth over time.",
-  'competencies.updateAssessment': 'Update self-assessment',
-  'competencies.overall': 'Overall self-assessment',
-  'competencies.noChange': 'No change',
-  'competencies.sinceReview': 'this review',
-  'competencies.targetLevel': 'target level',
-  'competencies.summary':
-    'You are meeting your target in Delivery and Develop. Focus your development on {a} and {b} to reach Level 4 readiness for the next review cycle.',
-
   'career.subtitle':
     'See where you are today, what you need to reach the next level, and your full career roadmap at Sopra Steria.',
   'career.roadmap': 'Your career roadmap',
@@ -136,7 +123,7 @@ const en = {
   'career.selectHint': 'Select a level above to see its certification requirements in detail.',
 
   'learning.subtitle':
-    'Set development goals, track milestones and follow study plans to grow your competencies and progress your career.',
+    'Set development goals, track milestones and follow study plans to progress your career.',
   'learning.stat.activeGoals': 'Active goals',
   'learning.stat.completed': 'Completed',
   'learning.stat.avgProgress': 'Avg progress',
@@ -157,11 +144,11 @@ const en = {
   'learning.due': 'due {date}',
 
   'assistant.subtitle':
-    'Ask career questions, get certification and learning recommendations, and uncover your competency gaps.',
+    'Ask career questions, and get certification and learning recommendations.',
   'assistant.name': 'LevelUP Assistant',
   'assistant.online': 'Online',
   'assistant.newChat': 'New chat',
-  'assistant.placeholder': 'Ask about certifications, career levels, competencies...',
+  'assistant.placeholder': 'Ask about certifications, career levels, learning plans...',
   'assistant.capabilities': 'Capabilities',
   'assistant.context': 'Assistant context',
   'assistant.didYouKnow': 'Did you know?',
@@ -175,11 +162,9 @@ const en = {
   'profile.language': 'Preferred language',
   'profile.stats.certifications': 'Certifications completed',
   'profile.stats.activePlans': 'Active learning plans',
-  'profile.stats.avgCompetency': 'Average competency',
   'profile.stats.careerProgress': 'Progress to next level',
   'profile.completedCertifications': 'Completed certifications',
   'profile.activeLearningPlans': 'Active learning plans',
-  'profile.competencyOverview': 'Competency overview',
   'profile.noCompletedCerts': 'No certifications completed yet.',
   'profile.noActiveGoals': 'No active learning plans.',
 }
@@ -191,7 +176,6 @@ const no: typeof en = {
   'nav.section.support': 'Støtte',
   'nav.dashboard': 'Oversikt',
   'nav.certifications': 'Sertifiseringer',
-  'nav.competencies': 'Kompetanse',
   'nav.career': 'Karrierevei',
   'nav.learning': 'Læringsplan',
   'nav.assistant': 'AI-assistent',
@@ -206,7 +190,6 @@ const no: typeof en = {
 
   'title.dashboard': 'Oversikt',
   'title.certifications': 'Sertifiseringer',
-  'title.competencies': 'Kompetanseutvikling',
   'title.career': 'Karrierevei',
   'title.learning': 'Læringsplan',
   'title.assistant': 'AI-assistent',
@@ -234,11 +217,10 @@ const no: typeof en = {
 
   'dashboard.greeting': 'Hyggelig å se deg, {name}',
   'dashboard.subtitle':
-    'Her er en oversikt over sertifiseringene, kompetansen og fremgangen din mot neste karrierenivå.',
+    'Her er en oversikt over sertifiseringene og fremgangen din mot neste karrierenivå.',
   'dashboard.progressToNext': 'Fremgang til neste nivå',
   'dashboard.requirementsMet': '{met} av {total} krav oppfylt',
   'dashboard.recommendedActions': 'Anbefalte neste steg',
-  'dashboard.competencyDevelopment': 'Kompetanseutvikling',
   'dashboard.aiRecommendation': 'AI-anbefaling',
   'dashboard.openAssistant': 'Åpne AI-assistent',
   'dashboard.certificationProgress': 'Sertifiseringsfremgang',
@@ -283,16 +265,6 @@ const no: typeof en = {
   'certifications.modal.status': 'Status',
   'certifications.modal.add': 'Legg til sertifisering',
 
-  'competencies.subtitle':
-    'Egenvurder nivået ditt innen Sopra Sterias fem kompetanseområder og følg utviklingen over tid.',
-  'competencies.updateAssessment': 'Oppdater egenvurdering',
-  'competencies.overall': 'Samlet egenvurdering',
-  'competencies.noChange': 'Ingen endring',
-  'competencies.sinceReview': 'siden forrige gjennomgang',
-  'competencies.targetLevel': 'målnivå',
-  'competencies.summary':
-    'Du oppfyller målet ditt innen Delivery og Develop. Fokuser utviklingen på {a} og {b} for å nå nivå 4 til neste gjennomgang.',
-
   'career.subtitle':
     'Se hvor du er i dag, hva du trenger for å nå neste nivå, og hele karriereveien din hos Sopra Steria.',
   'career.roadmap': 'Din karrierevei',
@@ -313,7 +285,7 @@ const no: typeof en = {
   'career.selectHint': 'Velg et nivå ovenfor for å se sertifiseringskravene i detalj.',
 
   'learning.subtitle':
-    'Sett utviklingsmål, følg milepæler og følg studieplaner for å utvikle kompetansen og karrieren din.',
+    'Sett utviklingsmål, følg milepæler og følg studieplaner for å utvikle karrieren din.',
   'learning.stat.activeGoals': 'Aktive mål',
   'learning.stat.completed': 'Fullført',
   'learning.stat.avgProgress': 'Snittfremgang',
@@ -334,11 +306,11 @@ const no: typeof en = {
   'learning.due': 'frist {date}',
 
   'assistant.subtitle':
-    'Still karrierespørsmål, få anbefalinger for sertifisering og læring, og avdekk kompetansegapene dine.',
+    'Still karrierespørsmål, og få anbefalinger for sertifisering og læring.',
   'assistant.name': 'LevelUP-assistent',
   'assistant.online': 'Tilkoblet',
   'assistant.newChat': 'Ny samtale',
-  'assistant.placeholder': 'Spør om sertifiseringer, karrierenivåer, kompetanse...',
+  'assistant.placeholder': 'Spør om sertifiseringer, karrierenivåer, læringsplaner...',
   'assistant.capabilities': 'Muligheter',
   'assistant.context': 'Assistentens kontekst',
   'assistant.didYouKnow': 'Visste du?',
@@ -352,11 +324,9 @@ const no: typeof en = {
   'profile.language': 'Foretrukket språk',
   'profile.stats.certifications': 'Fullførte sertifiseringer',
   'profile.stats.activePlans': 'Aktive læringsplaner',
-  'profile.stats.avgCompetency': 'Gjennomsnittlig kompetanse',
   'profile.stats.careerProgress': 'Fremgang til neste nivå',
   'profile.completedCertifications': 'Fullførte sertifiseringer',
   'profile.activeLearningPlans': 'Aktive læringsplaner',
-  'profile.competencyOverview': 'Kompetanseoversikt',
   'profile.noCompletedCerts': 'Ingen sertifiseringer fullført ennå.',
   'profile.noActiveGoals': 'Ingen aktive læringsplaner.',
 }

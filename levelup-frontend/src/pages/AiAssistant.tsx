@@ -8,14 +8,13 @@ const initialMessages: ChatMessage[] = [
     id: 'm0',
     role: 'assistant',
     content:
-      "Hi Amalie! I'm your LevelUP career assistant. I can help you understand certification requirements, discover learning activities, identify competency gaps and generate study plans. How can I help you grow today?",
+      "Hi Amalie! I'm your LevelUP career assistant. I can help you understand certification requirements, discover learning activities and generate study plans. How can I help you grow today?",
     timestamp: new Date().toISOString(),
   },
 ]
 
 const suggestions = [
   'What do I need for Level 4?',
-  'Find my competency gaps',
   'Create a study plan for AZ-305',
   'Recommend certifications for data & AI',
 ]
@@ -23,7 +22,6 @@ const suggestions = [
 const replyBank: Record<string, string> = {
   levelup:
     "Looking at your profile, moving from **Level 3** to **Level 4** requires choosing at least 2 of 6 Level 3 certifications: 1) **AZ-305** (in progress, 62%), 2) one more from **AZ-400**, **SC-100**, **AB-100**, **MS-102** or **SC-730** (not started). Level 4 itself has no fixed certification list — it's verified against individual expectations (business impact, architecture leadership, innovation, Cloud Adoption Framework experience) agreed with your Business Owner. Your biggest win right now is completing AZ-305 and picking a second Level 3 certification.",
-  gap: 'Based on your self-assessments, you show the largest competency gaps in **Sales** (level 3, target 4) and **Entrepreneurship** (level 3, target 4). Recommended: co-lead a proposal submission and present at an internal sales forum. Your Delivery and Develop areas already meet target.',
   plan: 'Here is a focused 6-week study plan for **AZ-305**: Week 1–2 finish the Design identity/governance modules (2 modules), Week 3 combine the design storage + continuity modules with practice questions, Week 4 take MeasureUp practice exams and target 70%+, Week 5 revise weak areas and do a timed full exam, Week 6 book and take the exam. I’ve added this to your Learning Plan.',
   cert:
     'Given your path toward Level 4 and interest in **Data & AI**, I recommend: **DP-203** (Azure Data Engineer) and **AI-102** (Azure AI Engineer) to build the data/AI specialisation, alongside your remaining Level 3 pick. Microsoft partner certifications align strongly with Sopra Steria delivery work.',
@@ -32,11 +30,10 @@ const replyBank: Record<string, string> = {
 function getReply(text: string): string {
   const lower = text.toLowerCase()
   if (lower.includes('level 4') || lower.includes('level4') || lower.includes('principal')) return replyBank.levelup
-  if (lower.includes('gap')) return replyBank.gap
   if (lower.includes('study') || lower.includes('plan')) return replyBank.plan
   if (lower.includes('cert') || lower.includes('recommend')) return replyBank.cert
   return (
-    "Great question! Based on your profile at Level 3 progressing toward Level 4, I'd focus on completing the **AZ-305** path and choosing a second Level 3 certification. Would you like me to generate a study plan, identify your competency gaps, or recommend certifications for a specific specialisation?"
+    "Great question! Based on your profile at Level 3 progressing toward Level 4, I'd focus on completing the **AZ-305** path and choosing a second Level 3 certification. Would you like me to generate a study plan, or recommend certifications for a specific specialisation?"
   )
 }
 
@@ -186,7 +183,6 @@ export default function AiAssistant() {
               ['cert', 'Answer career & certification questions'],
               ['sparkle', 'Recommend relevant certifications'],
               ['grad', 'Suggest learning activities'],
-              ['comp', 'Identify competency gaps'],
               ['book', 'Generate study plans'],
             ].map(([ic, label]) => (
               <div className="ai-cap-item" key={label}>
@@ -203,9 +199,9 @@ export default function AiAssistant() {
             </div>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
               The assistant is preloaded with your current level{' '}
-              <strong>Level 3</strong>, certification progress,
-              competency self-assessments, and your active learning plan. It can
-              tailor every answer to your real situation.
+              <strong>Level 3</strong>, certification progress, and your
+              active learning plan. It can tailor every answer to your real
+              situation.
             </p>
           </div>
 

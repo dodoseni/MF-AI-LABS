@@ -7,11 +7,12 @@ need to reach the next career level.
 
 > **Frontend only.** This app consumes the deployed LevelUp backend API (`backend/`, an
 > Express service on Azure App Service — see `docs/CHANGELOG.md`) for Profile,
-> Certifications, Competencies, Career Path and Learning Plan. The backend itself is still
+> Certifications, Career Path and Learning Plan. The backend itself is still
 > mock-data-backed internally; no database or Azure AI/data services are implemented yet.
 > A few purely-local interactions (Add certification, marking a certification/milestone
 > complete, the AI Assistant chat) have no backend write endpoint and remain frontend-only —
-> see "API integration" below.
+> see "API integration" below. (There is no Competency page anymore — removed in MIKK-36 —
+> though `GET /api/competencies` still exists on the backend if that ever changes.)
 
 ## Tech stack
 
@@ -43,7 +44,6 @@ src/api/
 ├── useApiResource.ts # useApiResource(fetcher) hook: { data, loading, error, retry }
 ├── profile.ts         → GET /api/profile
 ├── certifications.ts  → GET /api/certifications
-├── competencies.ts    → GET /api/competencies
 ├── careerLevels.ts     → GET /api/career-levels
 └── learningPlan.ts     → GET /api/learning-plan
 ```
@@ -61,9 +61,9 @@ src/api/
   Certifications, the milestone/study-task checkboxes on Learning Plan, and the AI
   Assistant chat (canned replies, no backend call).
 - **Types** — API responses are typed against the existing domain types in `src/types/index.ts`
-  (`Certification`, `CareerLevel`, `CompetencyEntry`, etc., plus the new `Profile` and
-  `LearningPlanData`); `client.ts` adds the `{ data: T }` response-envelope type on top,
-  it doesn't duplicate the domain model.
+  (`Certification`, `CareerLevel`, etc., plus the new `Profile` and `LearningPlanData`);
+  `client.ts` adds the `{ data: T }` response-envelope type on top, it doesn't duplicate the
+  domain model.
 - **CORS** — the backend currently allows all origins (`cors()` with no restriction), so no
   special handling is needed for the deployed Static Web App to reach it.
 
@@ -71,13 +71,16 @@ src/api/
 
 | Route | Page | Purpose |
 | --- | --- | --- |
-| `/` | **Dashboard** | Career overview: next-level progress, stat cards, recommended actions, competency snapshot, AI recommendation, milestones |
+| `/` | **Dashboard** | Career overview: next-level progress, career roadmap, certification progress stat cards |
 | `/certifications` | **Certifications** | Track/add certifications, filter by status/category, view required vs recommended certifications |
-| `/competencies` | **Competency Development** | Self-assess across the five competency areas (Sales, Delivery, Manage, Entrepreneurship, Develop) with a radar chart |
 | `/career` | **Career Path** | Career roadmap, current level, requirements for next level, missing requirements and progress indicators |
 | `/learning` | **Learning Plan** | Development goals with milestones and an active study plan |
 | `/assistant` | **AI Assistant** | Chat interface that answers career questions, recommends certifications, finds gaps and generates study plans |
-| `/profile` | **Profile** | Identity, current level, completed certifications, active plans, competency overview, language preference |
+| `/profile` | **Profile** | Identity, current level, completed certifications, active plans, language preference |
+
+> Note: there is no `/competencies` page — the standalone Competency Development page
+> (radar chart, self-assessment) was removed from the frontend in MIKK-36. `GET
+> /api/competencies` still exists on the backend if the feature is reintroduced later.
 
 ## Design system
 
@@ -90,8 +93,8 @@ Design tokens live as CSS custom properties in `src/index.css`. Key decisions:
   light-gray canvas with white cards for contrast and hierarchy.
 - **Component styling** in `src/components/app.css` uses semantic class names (`.card`,
   `.badge`, `.progress-bar`) so every page shares consistent spacing, radii and shadows.
-- **Data visualizations** — progress bars, level dots, competency radar (SVG) and a
-  career-roadmap tracker communicate progression at a glance.
+- **Data visualizations** — progress bars and a career-roadmap tracker communicate
+  progression at a glance.
 - **Responsive & accessible** — the sidebar collapses to an off-canvas drawer on mobile,
   grids reflow to single columns, focus states are preserved, and decorative SVGs are
   `aria-hidden` with accessible labels where they convey meaning. `prefers-reduced-motion`
@@ -111,7 +114,7 @@ src/
 ├── components/
 │   ├── Icon.tsx        # Inline SVG icon system
 │   ├── ui.tsx          # Reusable primitives: Card, CardHead, Badge, ProgressBar,
-│   │                   #   StatCard, Button, LevelDots, PageHead
+│   │                   #   StatCard, Button, PageHead
 │   ├── ApiState.tsx    # Shared loading / error+retry wrapper for API-backed content
 │   ├── Sidebar.tsx     # Navigation shell (responsive drawer)
 │   ├── Topbar.tsx      # Sticky header with actions
@@ -119,7 +122,6 @@ src/
 └── pages/
     ├── Dashboard.tsx
     ├── Certifications.tsx
-    ├── Competencies.tsx  # includes the SVG radar chart
     ├── CareerPath.tsx
     ├── LearningPlan.tsx
     ├── Profile.tsx
@@ -135,7 +137,6 @@ src/
 - **`ProgressBar` / `ProgressLabel`** — accessible progress indicators with optional
   semantic tone.
 - **`StatCard`** — number + label + icon summary tile used for KPI dashboards.
-- **`LevelDots`** — 5-segment competency-level indicator (current vs target).
 - **`Button`** — primary/secondary/ghost variants with consistent sizing.
 - **`PageHead`** — consistent page title, subtitle and header actions.
 
@@ -144,8 +145,8 @@ component is quick and stays visually consistent.
 
 ## Architecture & demo notes
 
-- **Data source** — Profile, Certifications, Competencies, Career Path and Learning Plan
-  are fetched from the real backend (see "API integration" above). Everything is still
+- **Data source** — Profile, Certifications, Career Path and Learning Plan are fetched
+  from the real backend (see "API integration" above). Everything is still
   typed against `src/types/index.ts`; `src/data/mock.ts` is now only a fallback/reference
   for content that has no backend contract yet (e.g. `dashboardStats`, `recommendedActions`)
   and is no longer imported by the wired pages.
@@ -154,6 +155,6 @@ component is quick and stays visually consistent.
   indicator, markdown-ish bold rendering) and is ready to be backed by a real model later;
   it does not call the backend.
 - **Interactions** that would require a backend write (Add certification, marking a
-  certification in-progress/completed, New goal, milestone/study-task checkboxes, Update
-  self-assessment) are local-only: they mutate in-memory component state seeded from the
-  API response, since no write endpoints exist on the backend yet.
+  certification in-progress/completed, New goal, milestone/study-task checkboxes) are
+  local-only: they mutate in-memory component state seeded from the API response, since no
+  write endpoints exist on the backend yet.

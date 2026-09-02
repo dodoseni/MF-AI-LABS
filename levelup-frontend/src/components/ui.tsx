@@ -185,28 +185,6 @@ export function Button({
   )
 }
 
-/* ---------- Level dots ---------- */
-export function LevelDots({
-  current,
-  target,
-}: {
-  current: number
-  target: number
-}) {
-  return (
-    <div className="level-dots" title={`Level ${current} of 5 (target ${target})`}>
-      {[1, 2, 3, 4, 5].map((i) => (
-        <span
-          key={i}
-          className={`level-dot ${
-            i <= current ? 'filled' : i === target ? 'target' : ''
-          }`}
-        />
-      ))}
-    </div>
-  )
-}
-
 /* ---------- Level roadmap ---------- */
 const levelStatusIcon: Record<CareerLevel['status'], string> = {
   completed: 'checkCircle',

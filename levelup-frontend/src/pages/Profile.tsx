@@ -1,13 +1,12 @@
 import { Link } from 'react-router-dom'
-import { Badge, Card, CardHead, Icon, LevelDots, PageHead, ProgressBar } from '../components/ui'
+import { Badge, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
 import { ApiState } from '../components/ApiState'
 import { useProfile } from '../api/ProfileContext'
 import { fetchCareerLevels } from '../api/careerLevels'
 import { fetchCertifications } from '../api/certifications'
-import { fetchCompetencies } from '../api/competencies'
 import { fetchLearningPlan } from '../api/learningPlan'
 import { useApiResource } from '../api/useApiResource'
-import type { CareerLevel, Certification, CompetencyEntry, DevelopmentGoal, Profile as ProfileData } from '../types'
+import type { CareerLevel, Certification, DevelopmentGoal, Profile as ProfileData } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
 import { languageNames, type Lang } from '../i18n/translations'
 
@@ -20,22 +19,15 @@ export default function Profile() {
   const profileRes = useProfile()
   const careerLevelsRes = useApiResource(fetchCareerLevels)
   const certificationsRes = useApiResource(fetchCertifications)
-  const competenciesRes = useApiResource(fetchCompetencies)
   const learningPlanRes = useApiResource(fetchLearningPlan)
 
   const loading =
-    profileRes.loading ||
-    careerLevelsRes.loading ||
-    certificationsRes.loading ||
-    competenciesRes.loading ||
-    learningPlanRes.loading
-  const error =
-    profileRes.error ?? careerLevelsRes.error ?? certificationsRes.error ?? competenciesRes.error ?? learningPlanRes.error
+    profileRes.loading || careerLevelsRes.loading || certificationsRes.loading || learningPlanRes.loading
+  const error = profileRes.error ?? careerLevelsRes.error ?? certificationsRes.error ?? learningPlanRes.error
   const retryAll = () => {
     profileRes.retry()
     careerLevelsRes.retry()
     certificationsRes.retry()
-    competenciesRes.retry()
     learningPlanRes.retry()
   }
 
@@ -44,19 +36,14 @@ export default function Profile() {
       <PageHead title={t('title.profile')} subtitle={t('profile.subtitle')} />
 
       <ApiState loading={loading} error={error} onRetry={retryAll}>
-        {profileRes.data &&
-          careerLevelsRes.data &&
-          certificationsRes.data &&
-          competenciesRes.data &&
-          learningPlanRes.data && (
-            <ProfileContent
-              currentUser={profileRes.data}
-              careerPath={careerLevelsRes.data}
-              certifications={certificationsRes.data}
-              competencyAreas={competenciesRes.data}
-              developmentGoals={learningPlanRes.data.goals}
-            />
-          )}
+        {profileRes.data && careerLevelsRes.data && certificationsRes.data && learningPlanRes.data && (
+          <ProfileContent
+            currentUser={profileRes.data}
+            careerPath={careerLevelsRes.data}
+            certifications={certificationsRes.data}
+            developmentGoals={learningPlanRes.data.goals}
+          />
+        )}
       </ApiState>
     </div>
   )
@@ -66,13 +53,11 @@ function ProfileContent({
   currentUser,
   careerPath,
   certifications,
-  competencyAreas,
   developmentGoals,
 }: {
   currentUser: ProfileData
   careerPath: CareerLevel[]
   certifications: Certification[]
-  competencyAreas: CompetencyEntry[]
   developmentGoals: DevelopmentGoal[]
 }) {
   const { t, lang, setLang } = useLanguage()
@@ -80,8 +65,6 @@ function ProfileContent({
   const currentLevel = careerPath.find((l) => l.status === 'current')
   const completedCerts = certifications.filter((c) => c.status === 'completed')
   const activeGoals = developmentGoals.filter((g) => g.status !== 'completed')
-  const avgCompetency =
-    Math.round((competencyAreas.reduce((s, c) => s + c.current, 0) / competencyAreas.length) * 10) / 10
 
   return (
     <>
@@ -122,7 +105,7 @@ function ProfileContent({
             </div>
           </Card>
 
-          <div className="grid grid-4">
+          <div className="grid grid-3">
             <div className="stat-card">
               <div className="stat-icon tone-brand"><Icon name="level" size={20} /></div>
               <div><div className="stat-value">{currentUser.level}</div><div className="stat-label">{t('profile.currentLevel')}</div></div>
@@ -134,10 +117,6 @@ function ProfileContent({
             <div className="stat-card">
               <div className="stat-icon tone-violet"><Icon name="goal" size={20} /></div>
               <div><div className="stat-value">{activeGoals.length}</div><div className="stat-label">{t('profile.stats.activePlans')}</div></div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon tone-info"><Icon name="comp" size={20} /></div>
-              <div><div className="stat-value">{avgCompetency} / 5</div><div className="stat-label">{t('profile.stats.avgCompetency')}</div></div>
             </div>
           </div>
 
@@ -184,7 +163,7 @@ function ProfileContent({
           </Card>
         </div>
 
-        {/* Right: preferences + active plans + competency */}
+        {/* Right: preferences + active plans */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <Card>
             <CardHead title={t('profile.language')} icon="globe" />
@@ -224,28 +203,6 @@ function ProfileContent({
                   </div>
                 ))
               )}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHead title={t('profile.competencyOverview')} icon="comp" link="/competencies" linkLabel={t('common.viewAll')} />
-            <div>
-              {competencyAreas.map((c) => (
-                <div className="comp-row" key={c.area}>
-                  <div className="comp-icon">
-                    <Icon name="target" size={17} />
-                  </div>
-                  <div>
-                    <div className="comp-name">{c.label}</div>
-                    <div className="comp-level">
-                      Level {c.current} · target {c.target}
-                    </div>
-                  </div>
-                  <div className="comp-right">
-                    <LevelDots current={c.current} target={c.target} />
-                  </div>
-                </div>
-              ))}
             </div>
           </Card>
 
