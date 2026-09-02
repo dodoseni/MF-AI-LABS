@@ -2,3 +2,8 @@ node_modules/
 dist/
 *.local
 .DS_Store
+
+# Local environment overrides (see .env.example for documented variables)
+.env
+.env.*
+!.env.example

@@ -50,6 +50,10 @@ const en = {
   'common.status.active': 'Active',
   'common.status.upcoming': 'Upcoming',
   'common.status.current': 'Current',
+  'common.loading': 'Loading...',
+  'common.loadingResource': 'Loading {resource}...',
+  'common.retry': 'Retry',
+  'common.apiError': "We couldn't load this. Please try again.",
 
   'dashboard.greeting': 'Good to see you, {name}',
   'dashboard.subtitle':
@@ -223,6 +227,10 @@ const no: typeof en = {
   'common.status.active': 'Aktiv',
   'common.status.upcoming': 'Kommende',
   'common.status.current': 'Nåværende',
+  'common.loading': 'Laster...',
+  'common.loadingResource': 'Laster {resource}...',
+  'common.retry': 'Prøv igjen',
+  'common.apiError': 'Vi kunne ikke laste dette. Vennligst prøv igjen.',
 
   'dashboard.greeting': 'Hyggelig å se deg, {name}',
   'dashboard.subtitle':

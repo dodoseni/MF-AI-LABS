@@ -5,8 +5,13 @@ This repository contains the complete frontend — a modern, enterprise-grade Re
 single-page application that lets consultants understand where they are today and what they
 need to reach the next career level.
 
-> **Frontend only.** All data is mocked locally. No backend, database or Azure services are
-> implemented — swap the `src/data/mock.ts` source for a real API when available.
+> **Frontend only.** This app consumes the deployed LevelUp backend API (`backend/`, an
+> Express service on Azure App Service — see `docs/CHANGELOG.md`) for Profile,
+> Certifications, Competencies, Career Path and Learning Plan. The backend itself is still
+> mock-data-backed internally; no database or Azure AI/data services are implemented yet.
+> A few purely-local interactions (Add certification, marking a certification/milestone
+> complete, the AI Assistant chat) have no backend write endpoint and remain frontend-only —
+> see "API integration" below.
 
 ## Tech stack
 
@@ -20,11 +25,47 @@ need to reach the next career level.
 
 ```bash
 npm install
+cp .env.example .env.local   # set VITE_API_BASE_URL — see "API integration" below
 npm run dev      # start the development server
 npm run build    # typecheck + production build
 npm run preview  # preview the production build
 npm run lint     # static analysis (oxlint)
 ```
+
+## API integration
+
+The app talks to the LevelUp backend (`backend/`) over plain `fetch`, via a small typed
+client layer under `src/api/`:
+
+```
+src/api/
+├── client.ts         # apiGet<T>(): fetch + timeout + `{ data: T }` envelope unwrapping + ApiError
+├── useApiResource.ts # useApiResource(fetcher) hook: { data, loading, error, retry }
+├── profile.ts         → GET /api/profile
+├── certifications.ts  → GET /api/certifications
+├── competencies.ts    → GET /api/competencies
+├── careerLevels.ts     → GET /api/career-levels
+└── learningPlan.ts     → GET /api/learning-plan
+```
+
+- **Base URL** comes from the Vite env var `VITE_API_BASE_URL` (see `.env.example`), so the
+  Azure hostname is never hard-coded in components. Falls back to `http://localhost:4000`
+  (the local `backend/` dev server) when unset.
+- **Loading / error / retry** — every page that fetches data wraps its content in the shared
+  `<ApiState>` component (`src/components/ApiState.tsx`), which shows a spinner while
+  loading and a friendly message + "Retry" button on failure (network error, timeout, or a
+  non-2xx response) instead of crashing or showing a blank page.
+- **Local-only interactions** — there is no backend write endpoint yet, so these remain
+  frontend-only, seeded from the API response and then mutated in local component state:
+  "Add certification" and the "Start tracking" / "Mark completed" status buttons on
+  Certifications, the milestone/study-task checkboxes on Learning Plan, and the AI
+  Assistant chat (canned replies, no backend call).
+- **Types** — API responses are typed against the existing domain types in `src/types/index.ts`
+  (`Certification`, `CareerLevel`, `CompetencyEntry`, etc., plus the new `Profile` and
+  `LearningPlanData`); `client.ts` adds the `{ data: T }` response-envelope type on top,
+  it doesn't duplicate the domain model.
+- **CORS** — the backend currently allows all origins (`cors()` with no restriction), so no
+  special handling is needed for the deployed Static Web App to reach it.
 
 ## Pages
 
@@ -36,6 +77,7 @@ npm run lint     # static analysis (oxlint)
 | `/career` | **Career Path** | Career roadmap, current level, requirements for next level, missing requirements and progress indicators |
 | `/learning` | **Learning Plan** | Development goals with milestones and an active study plan |
 | `/assistant` | **AI Assistant** | Chat interface that answers career questions, recommends certifications, finds gaps and generates study plans |
+| `/profile` | **Profile** | Identity, current level, completed certifications, active plans, competency overview, language preference |
 
 ## Design system
 
@@ -61,13 +103,16 @@ Design tokens live as CSS custom properties in `src/index.css`. Key decisions:
 src/
 ├── main.tsx            # Entry; mounts <BrowserRouter>
 ├── App.tsx             # App shell: routes + responsive layout
+├── vite-env.d.ts       # Typed `import.meta.env` (VITE_API_BASE_URL)
 ├── index.css           # Design tokens (CSS custom properties) + reset
 ├── types/index.ts      # Shared TypeScript domain types
-├── data/mock.ts        # Mock user, certifications, competencies, career, goals, chat
+├── data/mock.ts        # Fallback mock data for content with no backend contract yet
+├── api/                # Typed API client — see "API integration" above
 ├── components/
 │   ├── Icon.tsx        # Inline SVG icon system
 │   ├── ui.tsx          # Reusable primitives: Card, CardHead, Badge, ProgressBar,
 │   │                   #   StatCard, Button, LevelDots, PageHead
+│   ├── ApiState.tsx    # Shared loading / error+retry wrapper for API-backed content
 │   ├── Sidebar.tsx     # Navigation shell (responsive drawer)
 │   ├── Topbar.tsx      # Sticky header with actions
 │   └── app.css         # Shared component + page styles
@@ -77,7 +122,8 @@ src/
     ├── Competencies.tsx  # includes the SVG radar chart
     ├── CareerPath.tsx
     ├── LearningPlan.tsx
-    └── AiAssistant.tsx   # interactive chat simulation
+    ├── Profile.tsx
+    └── AiAssistant.tsx   # interactive chat simulation (local-only, no backend call)
 ```
 
 ### Reusable components
@@ -98,11 +144,16 @@ component is quick and stays visually consistent.
 
 ## Architecture & demo notes
 
-- **Mock data** — everything is typed against `src/types/index.ts` and sourced from
-  `src/data/mock.ts`, so wiring real backend calls only requires replacing that module.
+- **Data source** — Profile, Certifications, Competencies, Career Path and Learning Plan
+  are fetched from the real backend (see "API integration" above). Everything is still
+  typed against `src/types/index.ts`; `src/data/mock.ts` is now only a fallback/reference
+  for content that has no backend contract yet (e.g. `dashboardStats`, `recommendedActions`)
+  and is no longer imported by the wired pages.
 - **AI Assistant** — the chat is a self-contained simulation with canned, context-aware
   replies (keyword-based `getReply`). It demos the full UX (suggestion chips, typing
-  indicator, markdown-ish bold rendering) and is ready to be backed by a real model later.
-- **Interactions** that would require persistence (Add certification, New goal, Update
-  self-assessment, editing a plan) are mocked with buttons that open/notify; they are the
-  intended integration surface for future backend work.
+  indicator, markdown-ish bold rendering) and is ready to be backed by a real model later;
+  it does not call the backend.
+- **Interactions** that would require a backend write (Add certification, marking a
+  certification in-progress/completed, New goal, milestone/study-task checkboxes, Update
+  self-assessment) are local-only: they mutate in-memory component state seeded from the
+  API response, since no write endpoints exist on the backend yet.

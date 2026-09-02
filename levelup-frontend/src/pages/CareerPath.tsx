@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Card, CardHead, Icon, LevelRoadmap, PageHead, ProgressBar } from '../components/ui'
-import { careerPath } from '../data/mock'
+import { ApiState } from '../components/ApiState'
+import { fetchCareerLevels } from '../api/careerLevels'
+import { useApiResource } from '../api/useApiResource'
 import type { CareerLevel } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -110,7 +112,25 @@ function LevelDetail({ level }: { level: CareerLevel }) {
 
 export default function CareerPathPage() {
   const { t } = useLanguage()
-  const current = careerPath.find((l) => l.status === 'current')!
+  const careerLevelsRes = useApiResource(fetchCareerLevels)
+
+  return (
+    <div>
+      <PageHead
+        title={t('title.career')}
+        subtitle={t('career.subtitle')}
+      />
+
+      <ApiState loading={careerLevelsRes.loading} error={careerLevelsRes.error} onRetry={careerLevelsRes.retry}>
+        {careerLevelsRes.data && <CareerPathContent careerPath={careerLevelsRes.data} />}
+      </ApiState>
+    </div>
+  )
+}
+
+function CareerPathContent({ careerPath }: { careerPath: CareerLevel[] }) {
+  const { t } = useLanguage()
+  const current = careerPath.find((l) => l.status === 'current') ?? careerPath[0]
   const currentIndex = careerPath.findIndex((l) => l.id === current.id)
   const next = careerPath[currentIndex + 1]
   const completedCount = careerPath.filter((l) => l.status === 'completed').length
@@ -120,12 +140,7 @@ export default function CareerPathPage() {
   const selected = careerPath.find((l) => l.id === selectedId) ?? current
 
   return (
-    <div>
-      <PageHead
-        title={t('title.career')}
-        subtitle={t('career.subtitle')}
-      />
-
+    <>
       {/* Roadmap tracker */}
       <Card>
         <div style={{ padding: '18px 20px 20px' }}>
@@ -215,6 +230,6 @@ export default function CareerPathPage() {
           </Card>
         </div>
       </div>
-    </div>
+    </>
   )
 }

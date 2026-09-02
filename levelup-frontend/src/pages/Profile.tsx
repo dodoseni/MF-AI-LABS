@@ -1,16 +1,80 @@
 import { Link } from 'react-router-dom'
 import { Badge, Card, CardHead, Icon, LevelDots, PageHead, ProgressBar } from '../components/ui'
-import {
-  careerPath,
-  certifications,
-  competencyAreas,
-  currentUser,
-  developmentGoals,
-} from '../data/mock'
+import { ApiState } from '../components/ApiState'
+import { useProfile } from '../api/ProfileContext'
+import { fetchCareerLevels } from '../api/careerLevels'
+import { fetchCertifications } from '../api/certifications'
+import { fetchCompetencies } from '../api/competencies'
+import { fetchLearningPlan } from '../api/learningPlan'
+import { useApiResource } from '../api/useApiResource'
+import type { CareerLevel, Certification, CompetencyEntry, DevelopmentGoal, Profile as ProfileData } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
 import { languageNames, type Lang } from '../i18n/translations'
 
 export default function Profile() {
+  const { t } = useLanguage()
+
+  // Profile is fetched once for the whole app (see `ProfileProvider`,
+  // also consumed by `Sidebar` / `Dashboard.tsx`) rather than re-fetched
+  // per page.
+  const profileRes = useProfile()
+  const careerLevelsRes = useApiResource(fetchCareerLevels)
+  const certificationsRes = useApiResource(fetchCertifications)
+  const competenciesRes = useApiResource(fetchCompetencies)
+  const learningPlanRes = useApiResource(fetchLearningPlan)
+
+  const loading =
+    profileRes.loading ||
+    careerLevelsRes.loading ||
+    certificationsRes.loading ||
+    competenciesRes.loading ||
+    learningPlanRes.loading
+  const error =
+    profileRes.error ?? careerLevelsRes.error ?? certificationsRes.error ?? competenciesRes.error ?? learningPlanRes.error
+  const retryAll = () => {
+    profileRes.retry()
+    careerLevelsRes.retry()
+    certificationsRes.retry()
+    competenciesRes.retry()
+    learningPlanRes.retry()
+  }
+
+  return (
+    <div>
+      <PageHead title={t('title.profile')} subtitle={t('profile.subtitle')} />
+
+      <ApiState loading={loading} error={error} onRetry={retryAll}>
+        {profileRes.data &&
+          careerLevelsRes.data &&
+          certificationsRes.data &&
+          competenciesRes.data &&
+          learningPlanRes.data && (
+            <ProfileContent
+              currentUser={profileRes.data}
+              careerPath={careerLevelsRes.data}
+              certifications={certificationsRes.data}
+              competencyAreas={competenciesRes.data}
+              developmentGoals={learningPlanRes.data.goals}
+            />
+          )}
+      </ApiState>
+    </div>
+  )
+}
+
+function ProfileContent({
+  currentUser,
+  careerPath,
+  certifications,
+  competencyAreas,
+  developmentGoals,
+}: {
+  currentUser: ProfileData
+  careerPath: CareerLevel[]
+  certifications: Certification[]
+  competencyAreas: CompetencyEntry[]
+  developmentGoals: DevelopmentGoal[]
+}) {
   const { t, lang, setLang } = useLanguage()
 
   const currentLevel = careerPath.find((l) => l.status === 'current')
@@ -20,8 +84,7 @@ export default function Profile() {
     Math.round((competencyAreas.reduce((s, c) => s + c.current, 0) / competencyAreas.length) * 10) / 10
 
   return (
-    <div>
-      <PageHead title={t('title.profile')} subtitle={t('profile.subtitle')} />
+    <>
 
       <div className="grid grid-main-2">
         {/* Left: identity + stats */}
@@ -204,6 +267,6 @@ export default function Profile() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -133,3 +133,28 @@ export interface RecommendedAction {
   href: string
   cta: string
 }
+
+/** The signed-in user's profile, as returned by `GET /api/profile`. */
+export interface Profile {
+  id: string
+  name: string
+  email: string
+  role: string
+  level: string
+  nextLevel: string
+  office: string
+  memberSince: string
+  avatarInitials: string
+}
+
+/**
+ * Combined learning-plan resource returned by `GET /api/learning-plan`
+ * (development goals, the flat study-task list, the weekly cadence and
+ * calendar events all live under this single endpoint on the backend).
+ */
+export interface LearningPlanData {
+  goals: DevelopmentGoal[]
+  tasks: StudyPlanItem[]
+  weeklyPlan: WeeklyPlanDay[]
+  calendar: CalendarEvent[]
+}

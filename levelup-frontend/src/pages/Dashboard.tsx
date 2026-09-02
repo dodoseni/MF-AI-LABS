@@ -8,21 +8,40 @@ import {
   ProgressBar,
   StatCard,
 } from '../components/ui'
-import { careerPath, certifications, currentUser, dashboardStats } from '../data/mock'
+import { ApiState } from '../components/ApiState'
+import { useProfile } from '../api/ProfileContext'
+import { fetchCareerLevels } from '../api/careerLevels'
+import { fetchCertifications } from '../api/certifications'
+import { useApiResource } from '../api/useApiResource'
 import { useLanguage } from '../i18n/LanguageContext'
+import type { CareerLevel, Certification, Profile } from '../types'
 
 export default function Dashboard() {
   const { t } = useLanguage()
-  const stats = [...dashboardStats]
-  const currentLevel = careerPath.find((l) => l.status === 'current')!
-  const currentIndex = careerPath.findIndex((l) => l.id === currentLevel.id)
-  const nextLevel = careerPath[currentIndex + 1]
-  const completedCerts = certifications.filter((c) => c.status === 'completed').length
+
+  // Profile is fetched once for the whole app (see `ProfileProvider`,
+  // consumed here and by `Sidebar` / `Profile.tsx`) rather than re-fetched
+  // per page.
+  const profileRes = useProfile()
+  const careerLevelsRes = useApiResource(fetchCareerLevels)
+  const certificationsRes = useApiResource(fetchCertifications)
+
+  const loading = profileRes.loading || careerLevelsRes.loading || certificationsRes.loading
+  const error = profileRes.error ?? careerLevelsRes.error ?? certificationsRes.error
+  const retryAll = () => {
+    profileRes.retry()
+    careerLevelsRes.retry()
+    certificationsRes.retry()
+  }
+
+  const profile = profileRes.data
+  const careerPath = careerLevelsRes.data
+  const certifications = certificationsRes.data
 
   return (
     <div>
       <PageHead
-        title={t('dashboard.greeting', { name: currentUser.name.split(' ')[0] })}
+        title={t('dashboard.greeting', { name: profile ? profile.name.split(' ')[0] : '…' })}
         subtitle={t('dashboard.subtitle')}
         actions={
           <Button variant="secondary">
@@ -32,6 +51,33 @@ export default function Dashboard() {
         }
       />
 
+      <ApiState loading={loading} error={error} onRetry={retryAll}>
+        {profile && careerPath && certifications && (
+          <DashboardContent profile={profile} careerPath={careerPath} certifications={certifications} />
+        )}
+      </ApiState>
+    </div>
+  )
+}
+
+function DashboardContent({
+  profile,
+  careerPath,
+  certifications,
+}: {
+  profile: Profile
+  careerPath: CareerLevel[]
+  certifications: Certification[]
+}) {
+  const { t } = useLanguage()
+  const currentLevel = careerPath.find((l) => l.status === 'current') ?? careerPath[0]
+  const currentIndex = careerPath.findIndex((l) => l.id === currentLevel.id)
+  const nextLevel = careerPath[currentIndex + 1]
+  const completedCerts = certifications.filter((c) => c.status === 'completed').length
+  const metRequirements = currentLevel.requirements.filter((r) => r.met).length
+
+  return (
+    <>
       {/* Hero / current level */}
       <div className="mb-16">
         <div className="next-level-card">
@@ -44,7 +90,7 @@ export default function Dashboard() {
             <span>{t('career.percentComplete', { value: currentLevel.progress })}</span>
             <span>
               {t('dashboard.requirementsMet', {
-                met: currentLevel.requirements.filter((r) => r.met).length,
+                met: metRequirements,
                 total: currentLevel.requirements.length,
               })}
             </span>
@@ -67,8 +113,20 @@ export default function Dashboard() {
 
       {/* Stats */}
       <div className="grid grid-2 mb-16">
-        <StatCard icon={stats[0].icon} label={stats[0].label} value={stats[0].value} detail={stats[0].detail} tone={stats[0].tone} />
-        <StatCard icon={stats[1].icon} label={stats[1].label} value={stats[1].value} detail={stats[1].detail} tone={stats[1].tone} />
+        <StatCard
+          icon="level"
+          label={t('profile.currentLevel')}
+          value={profile.level}
+          detail={`${t('dashboard.progressToNext')}: ${profile.nextLevel}`}
+          tone="brand"
+        />
+        <StatCard
+          icon="cert"
+          label={t('dashboard.certificationProgress')}
+          value={`${metRequirements} / ${currentLevel.requirements.length}`}
+          detail={currentLevel.requirementNote}
+          tone="success"
+        />
       </div>
 
       <Card>
@@ -81,6 +139,6 @@ export default function Dashboard() {
           </div>
         </div>
       </Card>
-    </div>
+    </>
   )
 }

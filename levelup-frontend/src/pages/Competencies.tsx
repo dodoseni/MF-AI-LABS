@@ -1,5 +1,8 @@
 import { Badge, Card, Icon, LevelDots, PageHead } from '../components/ui'
-import { competencyAreas } from '../data/mock'
+import { ApiState } from '../components/ApiState'
+import { fetchCompetencies } from '../api/competencies'
+import { useApiResource } from '../api/useApiResource'
+import type { CompetencyEntry } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const areaAbbrev: Record<string, string> = {
@@ -18,13 +21,12 @@ const areaColor: Record<string, string> = {
   Develop: '#16a34a',
 }
 
-const radarPoints = competencyAreas.map((c) => ({
-  area: c.label,
-  current: c.current,
-  target: c.target,
-}))
-
-function RadarChart() {
+function RadarChart({ competencyAreas }: { competencyAreas: CompetencyEntry[] }) {
+  const radarPoints = competencyAreas.map((c) => ({
+    area: c.label,
+    current: c.current,
+    target: c.target,
+  }))
   const size = 340
   const cx = size / 2
   const cy = size / 2
@@ -120,18 +122,7 @@ function RadarChart() {
 
 export default function Competencies() {
   const { t } = useLanguage()
-  const avgCurrent =
-    Math.round(
-      (competencyAreas.reduce((s, c) => s + c.current, 0) /
-        competencyAreas.length) *
-        10,
-    ) / 10
-  const avgTarget =
-    Math.round(
-      (competencyAreas.reduce((s, c) => s + c.target, 0) /
-        competencyAreas.length) *
-        10,
-    ) / 10
+  const competenciesRes = useApiResource(fetchCompetencies)
 
   return (
     <div>
@@ -150,6 +141,30 @@ export default function Competencies() {
         }
       />
 
+      <ApiState loading={competenciesRes.loading} error={competenciesRes.error} onRetry={competenciesRes.retry}>
+        {competenciesRes.data && <CompetenciesContent competencyAreas={competenciesRes.data} />}
+      </ApiState>
+    </div>
+  )
+}
+
+function CompetenciesContent({ competencyAreas }: { competencyAreas: CompetencyEntry[] }) {
+  const { t } = useLanguage()
+  const avgCurrent =
+    Math.round(
+      (competencyAreas.reduce((s, c) => s + c.current, 0) /
+        competencyAreas.length) *
+        10,
+    ) / 10
+  const avgTarget =
+    Math.round(
+      (competencyAreas.reduce((s, c) => s + c.target, 0) /
+        competencyAreas.length) *
+        10,
+    ) / 10
+
+  return (
+    <>
       <div className="grid grid-main-13 mb-16">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {competencyAreas.map((c) => {
@@ -245,7 +260,7 @@ export default function Competencies() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card pad>
             <div className="radar-wrap">
-              <RadarChart />
+              <RadarChart competencyAreas={competencyAreas} />
             </div>
           </Card>
           <Card>
@@ -273,6 +288,6 @@ export default function Competencies() {
           </Card>
         </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Icon } from './Icon'
-import { currentUser } from '../data/mock'
+import { useProfile } from '../api/ProfileContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import type { TranslationKey } from '../i18n/translations'
 
@@ -26,6 +26,7 @@ export function Sidebar({
 }) {
   const navigate = useNavigate()
   const { t } = useLanguage()
+  const { data: profile } = useProfile()
   return (
     <>
       <div
@@ -86,11 +87,11 @@ export function Sidebar({
 
         <div className="sidebar-profile">
           <NavLink to="/profile" className="avatar" onClick={onClose} style={{ textDecoration: 'none' }}>
-            {currentUser.avatarInitials}
+            {profile?.avatarInitials ?? '···'}
           </NavLink>
           <div>
-            <div className="profile-name">{currentUser.name}</div>
-            <div className="profile-role">{currentUser.role}</div>
+            <div className="profile-name">{profile?.name ?? t('common.loading')}</div>
+            <div className="profile-role">{profile?.role ?? ''}</div>
           </div>
           <button
             type="button"

@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { Card, CardHead, Icon, PageHead, ProgressBar, ProgressLabel, Badge } from '../components/ui'
 import { Calendar } from '../components/Calendar'
-import { developmentGoals, studyPlan, calendarEvents, weeklyStudyPlan } from '../data/mock'
+import { ApiState } from '../components/ApiState'
+import { fetchLearningPlan } from '../api/learningPlan'
+import { useApiResource } from '../api/useApiResource'
 import { useLanguage } from '../i18n/LanguageContext'
-import type { DevelopmentGoal } from '../types'
+import type { CalendarEvent, DevelopmentGoal, StudyPlanItem, WeeklyPlanDay } from '../types'
 
 const goalTone: Record<string, string> = {
   completed: 'success',
@@ -44,8 +46,55 @@ function recomputeGoalProgress(goal: DevelopmentGoal): DevelopmentGoal {
 
 export default function LearningPlan() {
   const { t } = useLanguage()
-  const [goals, setGoals] = useState<DevelopmentGoal[]>(developmentGoals)
-  const [plan, setPlan] = useState(studyPlan)
+  const learningPlanRes = useApiResource(fetchLearningPlan)
+
+  return (
+    <div>
+      <PageHead
+        title={t('title.learning')}
+        subtitle={t('learning.subtitle')}
+        actions={
+          <button type="button" className="btn btn-primary">
+            <Icon name="plus" size={16} />
+            {t('common.newGoal')}
+          </button>
+        }
+      />
+
+      <ApiState loading={learningPlanRes.loading} error={learningPlanRes.error} onRetry={learningPlanRes.retry}>
+        {learningPlanRes.data && (
+          <LearningPlanContent
+            initialGoals={learningPlanRes.data.goals}
+            initialTasks={learningPlanRes.data.tasks}
+            weeklyStudyPlan={learningPlanRes.data.weeklyPlan}
+            calendarEvents={learningPlanRes.data.calendar}
+          />
+        )}
+      </ApiState>
+    </div>
+  )
+}
+
+function LearningPlanContent({
+  initialGoals,
+  initialTasks,
+  weeklyStudyPlan,
+  calendarEvents,
+}: {
+  initialGoals: DevelopmentGoal[]
+  initialTasks: StudyPlanItem[]
+  weeklyStudyPlan: WeeklyPlanDay[]
+  calendarEvents: CalendarEvent[]
+}) {
+  const { t } = useLanguage()
+  // Goal milestones and study-plan tasks are frontend-only interactions (no
+  // backend write endpoint exists for progress — see docs/CHANGELOG.md): seed
+  // local state from the fetched data, then mutate it locally. No sync
+  // effect is needed to pick up a later refetch — this component is only
+  // ever mounted (by the parent's `ApiState`) once fresh data has loaded, so
+  // a retry naturally unmounts/remounts it with the new `initial*` props.
+  const [goals, setGoals] = useState<DevelopmentGoal[]>(initialGoals)
+  const [plan, setPlan] = useState<StudyPlanItem[]>(initialTasks)
 
   const active = goals.filter((g) => g.status !== 'completed').length
   const completed = goals.filter((g) => g.status === 'completed').length
@@ -74,18 +123,7 @@ export default function LearningPlan() {
   }
 
   return (
-    <div>
-      <PageHead
-        title={t('title.learning')}
-        subtitle={t('learning.subtitle')}
-        actions={
-          <button type="button" className="btn btn-primary">
-            <Icon name="plus" size={16} />
-            {t('common.newGoal')}
-          </button>
-        }
-      />
-
+    <>
       {/* Overview cards */}
       <div className="grid grid-4 mb-16">
         <div className="stat-card">
@@ -286,7 +324,7 @@ export default function LearningPlan() {
           </Card>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
