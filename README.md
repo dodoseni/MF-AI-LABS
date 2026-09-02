@@ -6,7 +6,7 @@ LevelUp brings together certifications, learning resources, career requirements,
 
 ## Repository layout
 
-- `backend/` — Express.js API (Azure App Service). Health endpoint at `GET /api/health`, Azure SQL + AI service stubs.
+- `backend/` — Express.js API (Azure App Service). Real working endpoints backed by an interim mock data layer (`backend/src/data/`): certifications, competencies, career levels, learning plans, manager overview, plus generated PDF certificates and CSV exports. See `docs/CHANGELOG.md` for the full endpoint contract. Azure SQL + AI service clients remain stubbed pending provisioning (MIKK-10/11).
 - `levelup/` — AI assistant service: FastAPI backend with Azure OpenAI chat + RAG (Azure AI Search), chat UI, infra (Terraform, K8s, Docker Compose). See `levelup/backend/app.py`.
 - `levelup-db/` — Azure SQL (T-SQL) data model: schema, seed, and views for certifications, competency areas, the Job Family framework, and career levels.
 - `levelup-frontend/` — React 19 + TypeScript + Vite app: Dashboard, Certifications, Competency Development, Career Path, Learning Plan, and AI Assistant. Uses mock data until the backend is available.

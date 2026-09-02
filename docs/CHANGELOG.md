@@ -103,3 +103,30 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
 - Open questions / blockers (need product decision before MIKK-10 runs):
   - Who owns the Azure subscription / which Azure tenant & subscription ID should resources be provisioned in (Sopra Steria tenant vs dev subscription)?
   - Scope of the next demo: full vertical slice (auth → dashboard on real data) vs certifications-only slice without auth.
+
+## 2026-09-02 — MIKK-19: Interim backend — realistic mock data + generated PDF/CSV (demo-ready)
+
+- Component: backend
+- Issue/ref: MIKK-19 (P2-09) — unblocks a live demo today without waiting on MIKK-10/11 (Azure provisioning)
+- What was done:
+  - Added `backend/src/data/` mock data layer: `catalog.js` (certification catalog, 5 competency areas, job-family levels, career-level requirement definitions — same ids/field names as `levelup-db/seed.sql` and `levelup-frontend/src/data/mock.ts`), `users.js` (3 seeded consultants at different career stages with per-user certifications, competencies, career progress, development goals + milestones, study plan), and `repository.js` — the single seam all routes call through.
+  - Replaced the health-only API with 6 real, working route groups (all under `/api`, all Express + supertest-tested): `certifications`, `competencies`, `career`, `learning-plans`, `manager`, `users`.
+  - Added on-the-fly PDF generation (`pdfkit`) for certification certificates and on-the-fly CSV generation (`csv-stringify`) for certification/competency exports — nothing static on disk.
+  - Added Jest/supertest coverage for every new endpoint (status codes, response shape, PDF magic bytes, CSV header row). 17/17 tests pass; `npm run lint` clean.
+- Decision/notes — **endpoint contract for MIKK-14 (frontend) and MIKK-13 (real Azure SQL later)**:
+  - No auth yet (MIKK-12 pending) — every user-scoped endpoint takes an optional `?userId=<id>` query param; omitting it defaults to `usr-amalie-berg`. `GET /api/users` lists the 3 demo consultants (`usr-amalie-berg`, `usr-jonas-eide`, `usr-kristine-solberg`) so the frontend can offer a "view as" switcher during the demo.
+  - `GET /api/certifications?userId=` → `{ userId, userName, currentLevel, summary: { held, total, requiredHeld, requiredTotal, percent }, certifications: [{ id, name, issuer, category, level, status, earnedDate, progress, requiredFor, description, sourceUrl }] }`. `status` ∈ `completed|in-progress|missing|recommended` (matches `user_certification.status` in `levelup-db/schema.sql`); `progress` only present when `in-progress`.
+  - `GET /api/certifications/export.csv?userId=` → `text/csv`, columns `id,name,issuer,category,level,status,earnedDate,progress,requiredFor,description`.
+  - `GET /api/certifications/:id/certificate.pdf?userId=` → `application/pdf` (generated with `pdfkit`, includes consultant name, cert name, issuer, level, earned date). Returns `404` for an unknown cert/user, `409` if the user hasn't completed that cert yet (no certificate to issue).
+  - `GET /api/competencies?userId=` → `{ userId, userName, currentLevel, averageCurrent, averageTarget, areas: [{ area, label, description, current, target, previous, gap }] }` for the 5 fixed areas (`Sales, Delivery, Manage, Entrepreneurship, Develop` — same codes as `competency_area.code`).
+  - `GET /api/competencies/export.csv?userId=` → `text/csv`, columns `area,label,current,target,previous,gap`.
+  - `GET /api/career/levels?userId=` → `{ userId, userName, currentLevel, nextLevel, levels: [{ id, name, role, description, yearsExperience, color, progress, status, requirements: [{ label, met, detail }] }] }`. `id` = job-family `level_code` (`consultant|senior|principal|architect|expert`). Semantics: levels at/below the user's actual level are `status: 'completed'` (progress 100); the very next level is `status: 'current'` (progress = advancement %, requirements evaluated against the user's real certs/competencies); everything beyond is `status: 'upcoming'` (locked, progress 0). This mirrors `levelup-frontend/src/data/mock.ts` `careerPath` exactly for the default user.
+  - `GET /api/learning-plans?userId=` → `{ userId, userName, goals: [{ id, title, category, status, progress, dueDate, milestones: [{ id, label, date, done }] }], studyPlan: [{ id, title, source, duration, completed, type }] }`.
+  - `GET /api/manager/overview` (no userId — team-wide) → `{ generatedAt, teamSize, consultants: [{ userId, name, role, office, currentLevel, certifications: { held, total, percent }, competencies: { averageCurrent, averageTarget, gapAreas }, activeGoals }] }`.
+  - All 404s (unknown user/cert) and other errors go through the existing `errorHandler` middleware → `{ error: "<message>" }`; error logging now only prints a full stack trace for 5xx, a one-line `console.warn` for 4xx (keeps test/demo logs readable).
+  - Data is intentionally realistic and internally consistent per user: e.g. `usr-amalie-berg` (Senior Consultant) holds AZ-900/104/204, is 62% through AZ-305, and her career-path/competency/learning-plan data all tell the same "advancing toward Principal" story; `usr-jonas-eide` (junior Consultant) and `usr-kristine-solberg` (Principal, advancing toward Architect) tell their own coherent stories.
+  - This is explicitly the interim/demo data source. `backend/src/data/repository.js` is the only file that should change when MIKK-13 swaps in real Azure SQL (via `levelup-db/views.sql`); route files and response shapes are designed to stay stable.
+- Open questions / risks:
+  - No auth/session yet, so `userId` is a trusted query param — must be replaced by a real identity claim once MIKK-12 (Entra ID) lands; do not ship this query-param pattern to production.
+  - `manager/overview` returns the full 3-user roster with no manager/team scoping — fine for a demo, will need a real reporting-line model once real data lands.
+  - Generated certificate PDFs are a simple demo layout (not an official Microsoft credential template) — flagged as such in the PDF footer.
