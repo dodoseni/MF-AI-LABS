@@ -59,6 +59,32 @@
   background: var(--surface-hover);
   color: var(--text-strong);
 }
+.lang-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 10px 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.lang-select:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+.lang-select select {
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+}
+
 .badge-dot {
   position: absolute;
   top: 8px;
@@ -225,6 +251,254 @@
   inset: 0;
   background: rgba(15, 23, 42, 0.5);
   z-index: 40;
+}
+
+/* ============ Calendar ============ */
+.calendar {
+  padding: 18px 20px 20px;
+}
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+.calendar-month {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text-strong);
+  min-width: 150px;
+  text-align: center;
+}
+.calendar-nav {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.calendar-nav:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+.calendar-weekdays {
+  margin-bottom: 4px;
+}
+.calendar-weekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-bottom: 4px;
+}
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.calendar-day:hover {
+  background: var(--surface-hover);
+  border-color: var(--border);
+}
+.calendar-day.other-month {
+  color: var(--text-muted);
+  opacity: 0.45;
+}
+.calendar-day.today {
+  border-color: var(--brand-400);
+  color: var(--brand-600);
+}
+.calendar-day.selected {
+  background: var(--brand-600);
+  color: #fff;
+}
+.calendar-day.selected .calendar-day-num {
+  color: #fff;
+}
+.calendar-dots {
+  display: flex;
+  gap: 2px;
+}
+.calendar-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.calendar-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.calendar-day-events {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.calendar-day-events-head {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-strong);
+  margin-bottom: 8px;
+}
+.calendar-empty {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.calendar-event-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  padding: 5px 0;
+}
+
+/* ============ Weekly plan ============ */
+.weekly-plan {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+.weekly-day {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-muted);
+}
+.weekly-day-name {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-600);
+  margin-bottom: 8px;
+}
+.weekly-day-item {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+  padding: 6px 0;
+  border-top: 1px dashed var(--border);
+}
+.weekly-day-item:first-of-type {
+  border-top: none;
+}
+
+/* ============ Modal ============ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.modal {
+  width: 100%;
+  max-width: 440px;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-head h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-strong);
+  margin: 0;
+}
+.modal-close {
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 6px;
+}
+.modal-close:hover {
+  background: var(--surface-hover);
+  color: var(--text-strong);
+}
+.modal-body {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.modal-field input,
+.modal-field select {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text-strong);
+  background: var(--surface);
+}
+.modal-field input:focus,
+.modal-field select:focus {
+  outline: none;
+  border-color: var(--brand-400);
+  box-shadow: 0 0 0 3px var(--brand-50);
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-muted);
 }
 .mobile-menu-btn {
   display: none;
@@ -1363,4 +1637,21 @@ table.data tbody tr:hover td {
   .msg {
     max-width: 92%;
   }
+}
+
+/* ============ Interactive list buttons (reset to look like the original rows) ============ */
+.milestone-btn,
+.study-item-btn {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  border-radius: 8px;
+}
+.milestone-btn:hover,
+.study-item-btn:hover {
+  background: var(--surface-hover);
 }

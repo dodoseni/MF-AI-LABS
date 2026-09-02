@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon, PageHead } from '../components/ui'
 import type { ChatMessage } from '../types'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const initialMessages: ChatMessage[] = [
   {
@@ -40,6 +41,7 @@ function getReply(text: string): string {
 }
 
 export default function AiAssistant() {
+  const { t } = useLanguage()
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages)
   const [input, setInput] = useState('')
   const [typing, setTyping] = useState(false)
@@ -80,8 +82,8 @@ export default function AiAssistant() {
   return (
     <div>
       <PageHead
-        title="AI Career Assistant"
-        subtitle="Ask career questions, get certification and learning recommendations, and uncover your competency gaps."
+        title={t('title.assistant')}
+        subtitle={t('assistant.subtitle')}
       />
 
       <div className="ai-layout">
@@ -102,13 +104,13 @@ export default function AiAssistant() {
               <Icon name="brain" size={19} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>LevelUP Assistant</div>
+              <div style={{ fontWeight: 700, color: 'var(--text-strong)' }}>{t('assistant.name')}</div>
               <div style={{ fontSize: 12, color: 'var(--success)', fontWeight: 600 }}>
-                ● Online
+                ● {t('assistant.online')}
               </div>
             </div>
             <button type="button" className="card-link" style={{ border: 'none', background: 'none' }}>
-              New chat <Icon name="plus" size={14} />
+              {t('assistant.newChat')} <Icon name="plus" size={14} />
             </button>
           </div>
 
@@ -152,7 +154,7 @@ export default function AiAssistant() {
             <textarea
               className="ai-input"
               rows={1}
-              placeholder="Ask about certifications, career levels, competencies..."
+              placeholder={t('assistant.placeholder')}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -178,7 +180,7 @@ export default function AiAssistant() {
           <div className="ai-cap">
             <div className="ai-cap-head">
               <Icon name="target" size={16} style={{ color: 'var(--brand-600)' }} />
-              Capabilities
+              {t('assistant.capabilities')}
             </div>
             {[
               ['cert', 'Answer career & certification questions'],
@@ -197,7 +199,7 @@ export default function AiAssistant() {
           <div className="ai-cap">
             <div className="ai-cap-head">
               <Icon name="user" size={16} style={{ color: 'var(--brand-600)' }} />
-              Assistant context
+              {t('assistant.context')}
             </div>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
               The assistant is preloaded with your current level{' '}
@@ -210,7 +212,7 @@ export default function AiAssistant() {
           <div className="ai-cap">
             <div className="ai-cap-head">
               <Icon name="alert" size={16} style={{ color: 'var(--warning)' }} />
-              Did you know?
+              {t('assistant.didYouKnow')}
             </div>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
               Associates typically unlock{' '}

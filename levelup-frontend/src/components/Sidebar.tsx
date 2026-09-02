@@ -1,17 +1,20 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Icon } from './Icon'
 import { currentUser } from '../data/mock'
+import { useLanguage } from '../i18n/LanguageContext'
+import type { TranslationKey } from '../i18n/translations'
 
-const mainNav = [
-  { to: '/', label: 'Dashboard', icon: 'dashboard', end: true },
-  { to: '/certifications', label: 'Certifications', icon: 'cert' },
-  { to: '/competencies', label: 'Competency', icon: 'comp' },
-  { to: '/career', label: 'Career Path', icon: 'level' },
-  { to: '/learning', label: 'Learning Plan', icon: 'grad' },
+const mainNav: { to: string; labelKey: TranslationKey; icon: string; end?: boolean }[] = [
+  { to: '/', labelKey: 'nav.dashboard', icon: 'dashboard', end: true },
+  { to: '/certifications', labelKey: 'nav.certifications', icon: 'cert' },
+  { to: '/competencies', labelKey: 'nav.competencies', icon: 'comp' },
+  { to: '/career', labelKey: 'nav.career', icon: 'level' },
+  { to: '/learning', labelKey: 'nav.learning', icon: 'grad' },
 ]
 
-const utilityNav = [
-  { to: '/assistant', label: 'AI Assistant', icon: 'brain' },
+const utilityNav: { to: string; labelKey: TranslationKey; icon: string }[] = [
+  { to: '/assistant', labelKey: 'nav.assistant', icon: 'brain' },
+  { to: '/profile', labelKey: 'nav.profile', icon: 'user' },
 ]
 
 export function Sidebar({
@@ -22,6 +25,7 @@ export function Sidebar({
   onClose: () => void
 }) {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   return (
     <>
       <div
@@ -33,11 +37,11 @@ export function Sidebar({
           <div className="brand-logo">LU</div>
           <div>
             <div className="brand-name">LevelUP</div>
-            <div className="brand-sub">Sopra Steria</div>
+            <div className="brand-sub">{t('app.brand.sub')}</div>
           </div>
         </div>
 
-        <div className="sidebar-section">Workspace</div>
+        <div className="sidebar-section">{t('nav.section.workspace')}</div>
         <nav className="sidebar-nav">
           {mainNav.map((item) => (
             <NavLink
@@ -50,12 +54,12 @@ export function Sidebar({
               onClick={onClose}
             >
               <Icon name={item.icon} size={19} />
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="sidebar-section">Support</div>
+        <div className="sidebar-section">{t('nav.section.support')}</div>
         <nav className="sidebar-nav">
           {utilityNav.map((item) => (
             <NavLink
@@ -67,7 +71,7 @@ export function Sidebar({
               onClick={onClose}
             >
               <Icon name={item.icon} size={19} />
-              <span>{item.label}</span>
+              <span>{t(item.labelKey)}</span>
             </NavLink>
           ))}
           <button
@@ -76,12 +80,14 @@ export function Sidebar({
             style={{ width: '100%', textAlign: 'left', background: 'transparent', border: 'none' }}
           >
             <Icon name="bell" size={19} />
-            <span>Notifications</span>
+            <span>{t('nav.notifications')}</span>
           </button>
         </nav>
 
         <div className="sidebar-profile">
-          <div className="avatar">{currentUser.avatarInitials}</div>
+          <NavLink to="/profile" className="avatar" onClick={onClose} style={{ textDecoration: 'none' }}>
+            {currentUser.avatarInitials}
+          </NavLink>
           <div>
             <div className="profile-name">{currentUser.name}</div>
             <div className="profile-role">{currentUser.role}</div>
@@ -89,7 +95,7 @@ export function Sidebar({
           <button
             type="button"
             className="sidebar-logout"
-            aria-label="Sign out"
+            aria-label={t('nav.signOut')}
             onClick={() => navigate('/')}
           >
             <Icon name="logout" size={18} />
