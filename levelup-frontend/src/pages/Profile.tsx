@@ -1,9 +1,8 @@
 import { Link } from 'react-router-dom'
-import { Badge, Card, CardHead, Icon, LevelDots, PageHead, ProgressBar } from '../components/ui'
+import { Badge, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
 import {
   careerPath,
   certifications,
-  competencyAreas,
   currentUser,
   developmentGoals,
 } from '../data/mock'
@@ -16,8 +15,6 @@ export default function Profile() {
   const currentLevel = careerPath.find((l) => l.status === 'current')
   const completedCerts = certifications.filter((c) => c.status === 'completed')
   const activeGoals = developmentGoals.filter((g) => g.status !== 'completed')
-  const avgCompetency =
-    Math.round((competencyAreas.reduce((s, c) => s + c.current, 0) / competencyAreas.length) * 10) / 10
 
   return (
     <div>
@@ -59,7 +56,7 @@ export default function Profile() {
             </div>
           </Card>
 
-          <div className="grid grid-4">
+          <div className="grid grid-3">
             <div className="stat-card">
               <div className="stat-icon tone-brand"><Icon name="level" size={20} /></div>
               <div><div className="stat-value">{currentUser.level}</div><div className="stat-label">{t('profile.currentLevel')}</div></div>
@@ -71,10 +68,6 @@ export default function Profile() {
             <div className="stat-card">
               <div className="stat-icon tone-violet"><Icon name="goal" size={20} /></div>
               <div><div className="stat-value">{activeGoals.length}</div><div className="stat-label">{t('profile.stats.activePlans')}</div></div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon tone-info"><Icon name="comp" size={20} /></div>
-              <div><div className="stat-value">{avgCompetency} / 5</div><div className="stat-label">{t('profile.stats.avgCompetency')}</div></div>
             </div>
           </div>
 
@@ -121,7 +114,7 @@ export default function Profile() {
           </Card>
         </div>
 
-        {/* Right: preferences + active plans + competency */}
+        {/* Right: preferences + active plans */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <Card>
             <CardHead title={t('profile.language')} icon="globe" />
@@ -161,28 +154,6 @@ export default function Profile() {
                   </div>
                 ))
               )}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHead title={t('profile.competencyOverview')} icon="comp" link="/competencies" linkLabel={t('common.viewAll')} />
-            <div>
-              {competencyAreas.map((c) => (
-                <div className="comp-row" key={c.area}>
-                  <div className="comp-icon">
-                    <Icon name="target" size={17} />
-                  </div>
-                  <div>
-                    <div className="comp-name">{c.label}</div>
-                    <div className="comp-level">
-                      Level {c.current} · target {c.target}
-                    </div>
-                  </div>
-                  <div className="comp-right">
-                    <LevelDots current={c.current} target={c.target} />
-                  </div>
-                </div>
-              ))}
             </div>
           </Card>
 
