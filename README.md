@@ -10,7 +10,6 @@ LevelUp brings together certifications, learning resources, career requirements,
 - `backend/` — Express.js API skeleton (Node >= 20). Currently exposes only `GET /api/health`; no database, auth, or AI wiring yet. See `backend/README.md`.
 - `docs/CHANGELOG.md` — shared, version-controlled record of completed tasks. Append an entry per task.
 
-**Note:** an earlier `backend/`, `levelup/` (Python AI service), and `levelup-db/` (Azure SQL schema) were removed on 2026-09-02 because they were built in isolation from each other and from the frontend, never integrated, and never deployed (see the CHANGELOG entry for that date). `backend/` above is the fresh rebuild, deliberately kept minimal (health check only) until it is wired to real data.
 
 ## Architecture (target — not yet built)
 
