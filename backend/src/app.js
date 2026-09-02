@@ -2,6 +2,11 @@ const express = require('express');
 const cors = require('cors');
 
 const healthRouter = require('./routes/health');
+const profileRouter = require('./routes/profile');
+const certificationsRouter = require('./routes/certifications');
+const competenciesRouter = require('./routes/competencies');
+const careerLevelsRouter = require('./routes/careerLevels');
+const learningPlanRouter = require('./routes/learningPlan');
 
 function createApp() {
   const app = express();
@@ -12,6 +17,11 @@ function createApp() {
 
   // Routes
   app.use('/api', healthRouter);
+  app.use('/api', profileRouter);
+  app.use('/api', certificationsRouter);
+  app.use('/api', competenciesRouter);
+  app.use('/api', careerLevelsRouter);
+  app.use('/api', learningPlanRouter);
 
   // 404 handler for unknown routes
   app.use((req, res) => {
