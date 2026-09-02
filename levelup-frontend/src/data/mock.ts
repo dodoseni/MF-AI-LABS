@@ -1,10 +1,8 @@
 import type {
-  CalendarEvent,
   CareerLevel,
   Certification,
   DevelopmentGoal,
-  RecommendedAction,
-  WeeklyPlanDay,
+  StudyChecklist,
 } from '../types'
 
 export const currentUser = {
@@ -16,30 +14,6 @@ export const currentUser = {
   avatarInitials: 'AB',
   nextLevel: 'Level 4',
 }
-
-export const dashboardStats = [
-  {
-    icon: 'level',
-    label: 'Current level',
-    value: 'Level 3',
-    detail: 'Next: Level 4',
-    tone: 'brand',
-  },
-  {
-    icon: 'cert',
-    label: 'Level certifications',
-    value: '6 / 8',
-    detail: '2 more to reach Level 4',
-    tone: 'success',
-  },
-  {
-    icon: 'goal',
-    label: 'Active goals',
-    value: '4',
-    detail: '2 on track',
-    tone: 'violet',
-  },
-] as const
 
 export const certifications: Certification[] = [
   // ---- Pre-Level 1 / historical certifications (not tied to a specific level) ----
@@ -367,10 +341,10 @@ export const careerPath: CareerLevel[] = [
     requirementMode: 'all',
     requirementNote: 'Hold all 4 mandatory certifications',
     requirements: [
-      { label: 'AZ-104 — Azure Administrator Associate', detail: 'Completed', met: true },
-      { label: 'SC-300 — Identity and Access Administrator Associate', detail: 'Completed', met: true },
-      { label: 'Terraform Associate — HashiCorp Certified: Terraform Associate', detail: 'Completed', met: true },
-      { label: 'Sopra Steria Navigator Foundation', detail: 'Completed', met: true },
+      { label: 'AZ-104 — Azure Administrator Associate', detail: 'Completed', met: true, certId: 'az-104' },
+      { label: 'SC-300 — Identity and Access Administrator Associate', detail: 'Completed', met: true, certId: 'sc-300' },
+      { label: 'Terraform Associate — HashiCorp Certified: Terraform Associate', detail: 'Completed', met: true, certId: 'terraform-associate' },
+      { label: 'Sopra Steria Navigator Foundation', detail: 'Completed', met: true, certId: 'navigator-foundation' },
     ],
   },
   {
@@ -386,19 +360,19 @@ export const careerPath: CareerLevel[] = [
     chooseAtLeast: 2,
     requirementNote: 'Choose at least 2 of 13 certifications',
     requirements: [
-      { label: 'AI-103 — Azure AI App and Agent Developer Associate', detail: 'Completed', met: true },
-      { label: 'AZ-800 — Windows Server Hybrid Administrator Associate', detail: 'Completed', met: true },
-      { label: 'AI-200 — Azure AI Cloud Developer Associate', detail: 'Not started', met: false },
-      { label: 'AZ-700 — Azure Network Engineer Associate', detail: 'Not started', met: false },
-      { label: 'SC-401 — Information Security Administrator Associate', detail: 'Not started', met: false },
-      { label: 'SC-200 — Security Operations Analyst Associate', detail: 'Not started', met: false },
-      { label: 'SC-500 — Cloud and AI Security Engineer Associate', detail: 'Not started', met: false },
-      { label: 'CKS — Certified Kubernetes Security Specialist', detail: 'Not started', met: false },
-      { label: 'CKA — Certified Kubernetes Administrator', detail: 'Not started', met: false },
-      { label: 'Terraform Authoring and Operations Professional', detail: 'Not started', met: false },
-      { label: 'GH-500 — GitHub Advanced Security', detail: 'Not started', met: false },
-      { label: 'GH-200 — GitHub Actions', detail: 'Not started', met: false },
-      { label: 'GH-300 — GitHub Copilot', detail: 'Not started', met: false },
+      { label: 'AI-103 — Azure AI App and Agent Developer Associate', detail: 'Completed', met: true, certId: 'ai-103' },
+      { label: 'AZ-800 — Windows Server Hybrid Administrator Associate', detail: 'Completed', met: true, certId: 'az-800' },
+      { label: 'AI-200 — Azure AI Cloud Developer Associate', detail: 'Not started', met: false, certId: 'ai-200' },
+      { label: 'AZ-700 — Azure Network Engineer Associate', detail: 'Not started', met: false, certId: 'az-700' },
+      { label: 'SC-401 — Information Security Administrator Associate', detail: 'Not started', met: false, certId: 'sc-401' },
+      { label: 'SC-200 — Security Operations Analyst Associate', detail: 'Not started', met: false, certId: 'sc-200' },
+      { label: 'SC-500 — Cloud and AI Security Engineer Associate', detail: 'Not started', met: false, certId: 'sc-500' },
+      { label: 'CKS — Certified Kubernetes Security Specialist', detail: 'Not started', met: false, certId: 'cks' },
+      { label: 'CKA — Certified Kubernetes Administrator', detail: 'Not started', met: false, certId: 'cka' },
+      { label: 'Terraform Authoring and Operations Professional', detail: 'Not started', met: false, certId: 'terraform-professional' },
+      { label: 'GH-500 — GitHub Advanced Security', detail: 'Not started', met: false, certId: 'gh-500' },
+      { label: 'GH-200 — GitHub Actions', detail: 'Not started', met: false, certId: 'gh-200' },
+      { label: 'GH-300 — GitHub Copilot', detail: 'Not started', met: false, certId: 'gh-300' },
     ],
   },
   {
@@ -414,12 +388,12 @@ export const careerPath: CareerLevel[] = [
     chooseAtLeast: 2,
     requirementNote: 'Choose at least 2 of 6 certifications',
     requirements: [
-      { label: 'AZ-305 — Azure Solutions Architect Expert', detail: 'In progress — 62%', met: false },
-      { label: 'AZ-400 — DevOps Engineer Expert', detail: 'Not started', met: false },
-      { label: 'SC-100 — Cybersecurity Architect Expert', detail: 'Not started', met: false },
-      { label: 'AB-100 — Agentic AI Business Solutions Architect', detail: 'Not started', met: false },
-      { label: 'MS-102 — Microsoft 365 Administrator Expert', detail: 'Not started', met: false },
-      { label: 'SC-730 — Cybersecurity Business Professional', detail: 'Not started', met: false },
+      { label: 'AZ-305 — Azure Solutions Architect Expert', detail: 'In progress — 62%', met: false, certId: 'az-305' },
+      { label: 'AZ-400 — DevOps Engineer Expert', detail: 'Not started', met: false, certId: 'az-400' },
+      { label: 'SC-100 — Cybersecurity Architect Expert', detail: 'Not started', met: false, certId: 'sc-100' },
+      { label: 'AB-100 — Agentic AI Business Solutions Architect', detail: 'Not started', met: false, certId: 'ab-100' },
+      { label: 'MS-102 — Microsoft 365 Administrator Expert', detail: 'Not started', met: false, certId: 'ms-102' },
+      { label: 'SC-730 — Cybersecurity Business Professional', detail: 'Not started', met: false, certId: 'sc-730' },
     ],
   },
   {
@@ -484,105 +458,24 @@ export const developmentGoals: DevelopmentGoal[] = [
   },
 ]
 
-export const studyPlan: {
-  id: string
-  title: string
-  source: string
-  duration: string
-  completed: boolean
-  type: 'course' | 'certification' | 'reading' | 'practice'
-}[] = [
+/**
+ * Learning Plan data — a simple, per-certification study checklist (MIKK-37).
+ * Replaces the old goals/calendar/course-recommendation model: one checklist per
+ * certification a user is actively studying for, made up of plain todo items.
+ */
+export const studyChecklists: StudyChecklist[] = [
   {
-    id: 's1',
-    title: 'AZ-305: Design identity, governance and monitoring solutions',
-    source: 'Microsoft Learn',
-    duration: '4h 30m',
-    completed: true,
-    type: 'course',
-  },
-  {
-    id: 's2',
-    title: 'AZ-305: Design data storage solutions',
-    source: 'Microsoft Learn',
-    duration: '5h 15m',
-    completed: true,
-    type: 'course',
-  },
-  {
-    id: 's3',
-    title: 'AZ-305: Design business continuity solutions',
-    source: 'Microsoft Learn',
-    duration: '3h 45m',
-    completed: false,
-    type: 'course',
-  },
-  {
-    id: 's4',
-    title: 'Architecting Microsoft Azure Solutions exam guide',
-    source: 'Microsoft Press (book)',
-    duration: '12h',
-    completed: false,
-    type: 'reading',
-  },
-  {
-    id: 's5',
-    title: 'AZ-305 practice exam set',
-    source: 'MeasureUp',
-    duration: '2h',
-    completed: false,
-    type: 'practice',
-  },
-]
-
-export const weeklyStudyPlan: WeeklyPlanDay[] = [
-  { day: 'Monday', items: ['AZ-305: Design identity & governance — Module 1'] },
-  { day: 'Wednesday', items: ['AZ-305: Design data storage — Module 2'] },
-  { day: 'Friday', items: ['Hands-on practice lab (Azure sandbox)'] },
-  { day: 'Sunday', items: ['Weekly quiz + recap'] },
-]
-
-export const calendarEvents: CalendarEvent[] = [
-  { id: 'e1', date: '2026-09-07', title: 'AZ-305: Design identity & governance — Module 1', type: 'study' },
-  { id: 'e2', date: '2026-09-09', title: 'AZ-305: Design data storage — Module 2', type: 'study' },
-  { id: 'e3', date: '2026-09-11', title: 'Hands-on practice lab', type: 'study' },
-  { id: 'e4', date: '2026-09-13', title: 'Weekly quiz + recap', type: 'study' },
-  { id: 'e5', date: '2026-09-15', title: 'Complete AZ-305 Design module', type: 'milestone' },
-  { id: 'e7', date: '2026-10-15', title: 'AZ-305 practice exam — target 70%+', type: 'practice' },
-  { id: 'e8', date: '2026-10-15', title: 'Finish Azure DevOps course', type: 'study' },
-  { id: 'e10', date: '2026-11-15', title: 'Implement CI/CD on a demo project', type: 'study' },
-  { id: 'e11', date: '2026-11-30', title: 'AZ-305 certification exam', type: 'exam' },
-  { id: 'e12', date: '2026-12-01', title: 'DevOps practices deep-dive due', type: 'milestone' },
-]
-
-export const recommendedActions: RecommendedAction[] = [
-  {
-    id: 'r1',
-    title: 'Continue AZ-305 study plan',
-    description:
-      'You are 62% through the Solutions Architect Expert path. 2 of 6 modules remain.',
-    impact: 'high',
-    category: 'Certification',
-    href: '/learning',
-    cta: 'Resume study',
-  },
-  {
-    id: 'r2',
-    title: 'Choose a second Level 3 certification',
-    description:
-      'AZ-400, SC-100, AB-100, MS-102 or SC-730 — you need 2 of 6 for Level 3. AZ-305 is already in progress.',
-    impact: 'high',
-    category: 'Certification',
-    href: '/certifications',
-    cta: 'View certifications',
-  },
-  {
-    id: 'r4',
-    title: 'Align with your manager',
-    description:
-      'Review your development plan with your People Manager this quarter.',
-    impact: 'medium',
-    category: 'Career',
-    href: '/career',
-    cta: 'View career path',
+    id: 'plan-az-305',
+    certificationId: 'az-305',
+    certificationName: 'AZ-305 — Azure Solutions Architect Expert',
+    items: [
+      { id: 'az-305-1', label: 'Complete Design Identity module', done: true },
+      { id: 'az-305-2', label: 'Complete Governance module', done: true },
+      { id: 'az-305-3', label: 'Complete Storage module', done: false },
+      { id: 'az-305-4', label: 'Complete Business Continuity module', done: false },
+      { id: 'az-305-5', label: 'Take Practice Exam', done: false },
+      { id: 'az-305-6', label: 'Schedule Certification Exam', done: false },
+      { id: 'az-305-7', label: 'Pass Certification Exam', done: false },
+    ],
   },
 ]

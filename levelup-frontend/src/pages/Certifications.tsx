@@ -7,8 +7,8 @@ import {
   ProgressBar,
   StatCard,
 } from '../components/ui'
-import { certifications as initialCertifications } from '../data/mock'
-import type { Certification, CertificationStatus } from '../types'
+import { useCertifications } from '../context/CertificationsContext'
+import type { CertificationStatus } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const statusTone: Record<CertificationStatus, string> = {
@@ -32,12 +32,14 @@ const categories = [
 
 export default function Certifications() {
   const { t } = useLanguage()
-  const [certifications, setCertifications] = useState<Certification[]>(initialCertifications)
+  const { certifications, addCertification, deleteCertification, updateCertificationStatus } =
+    useCertifications()
   const [filter, setFilter] = useState<CertificationStatus | 'all'>('all')
   const [category, setCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ name: '', issuer: '', category: categories[0] })
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
   const filterOptions: { key: CertificationStatus | 'all'; label: string }[] = [
     { key: 'all', label: t('certifications.filter.all') },
@@ -65,40 +67,22 @@ export default function Certifications() {
   })
 
   function updateStatus(id: string, status: CertificationStatus) {
-    setCertifications((prev) =>
-      prev.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              status,
-              progress: status === 'in-progress' ? c.progress ?? 10 : c.progress,
-              earnedDate:
-                status === 'completed'
-                  ? c.earnedDate ?? new Date().toISOString().slice(0, 10)
-                  : c.earnedDate,
-            }
-          : c,
-      ),
-    )
+    updateCertificationStatus(id, status)
   }
 
-  function addCertification() {
+  function submitAddCertification() {
     if (!form.name.trim()) return
-    const id = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    const newCert: Certification = {
-      id: `${id}-${Date.now()}`,
-      name: form.name.trim(),
-      issuer: form.issuer.trim() || 'Custom',
-      status: 'in-progress',
-      category: form.category,
-      level: 'Associate',
-      progress: 0,
-      requiredFor: [],
-      description: 'Manually added certification.',
-    }
-    setCertifications((prev) => [newCert, ...prev])
+    addCertification(form)
     setForm({ name: '', issuer: '', category: categories[0] })
     setShowModal(false)
+  }
+
+  const deleteTarget = certifications.find((c) => c.id === deleteTargetId) ?? null
+
+  function confirmDelete() {
+    if (!deleteTargetId) return
+    deleteCertification(deleteTargetId)
+    setDeleteTargetId(null)
   }
 
   return (
@@ -164,9 +148,20 @@ export default function Certifications() {
                 <div className="cert-issuer">{c.issuer} · {c.level}</div>
                 <div className="cert-name">{c.name}</div>
               </div>
-              <Badge tone={statusTone[c.status]} dot>
-                {t(`common.status.${c.status}` as const)}
-              </Badge>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Badge tone={statusTone[c.status]} dot>
+                  {t(`common.status.${c.status}` as const)}
+                </Badge>
+                <button
+                  type="button"
+                  className="icon-btn icon-btn-danger"
+                  onClick={() => setDeleteTargetId(c.id)}
+                  aria-label={t('certifications.delete')}
+                  title={t('certifications.delete')}
+                >
+                  <Icon name="trash" size={16} />
+                </button>
+              </div>
             </div>
             <p className="cert-desc">{c.description}</p>
 
@@ -265,7 +260,33 @@ export default function Certifications() {
               <Button variant="secondary" onClick={() => setShowModal(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button onClick={addCertification}>{t('certifications.modal.add')}</Button>
+              <Button onClick={submitAddCertification}>{t('certifications.modal.add')}</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeleteTargetId(null)}>
+          <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>{t('certifications.confirmDelete.title')}</h3>
+              <button type="button" className="modal-close" onClick={() => setDeleteTargetId(null)} aria-label={t('common.close')}>
+                <Icon name="close" size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>
+                {t('certifications.confirmDelete.body', { name: deleteTarget.name })}
+              </p>
+            </div>
+            <div className="modal-footer">
+              <Button variant="secondary" onClick={() => setDeleteTargetId(null)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" onClick={confirmDelete}>
+                {t('common.delete')}
+              </Button>
             </div>
           </div>
         </div>

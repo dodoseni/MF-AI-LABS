@@ -1,16 +1,13 @@
 import { Link } from 'react-router-dom'
 import { Badge, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
-import {
-  careerPath,
-  certifications,
-  currentUser,
-  developmentGoals,
-} from '../data/mock'
+import { currentUser, developmentGoals } from '../data/mock'
+import { useCertifications } from '../context/CertificationsContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import { languageNames, type Lang } from '../i18n/translations'
 
 export default function Profile() {
   const { t, lang, setLang } = useLanguage()
+  const { careerPath, certifications } = useCertifications()
 
   const currentLevel = careerPath.find((l) => l.status === 'current')
   const completedCerts = certifications.filter((c) => c.status === 'completed')
