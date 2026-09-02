@@ -6,17 +6,18 @@ LevelUp brings together certifications, learning resources, career requirements,
 
 ## Repository layout
 
-- `levelup-frontend/` — React 19 + TypeScript + Vite app: Dashboard, Certifications, Competency Development, Career Path, Learning Plan, AI Assistant, and Profile. Fully functional on mock data (`src/data/mock.ts`); no backend wiring yet. This is the only shipped component today.
+- `levelup-frontend/` — React 19 + TypeScript + Vite app: Dashboard, Certifications, Competency Development, Career Path, Learning Plan, AI Assistant, and Profile. Fully functional on mock data (`src/data/mock.ts`); no backend wiring yet.
+- `backend/` — Express.js API skeleton (Node >= 20). Currently exposes only `GET /api/health`; no database, auth, or AI wiring yet. See `backend/README.md`.
 - `docs/CHANGELOG.md` — shared, version-controlled record of completed tasks. Append an entry per task.
 
-**Note:** `backend/`, `levelup/` (Python AI service), and `levelup-db/` (Azure SQL schema) were removed on 2026-09-02. They were built in isolation from each other and from the frontend, never integrated, and never deployed. See the CHANGELOG entry for that date for the rationale. The backend is being rebuilt from scratch as a fresh, tracked effort.
+**Note:** an earlier `backend/`, `levelup/` (Python AI service), and `levelup-db/` (Azure SQL schema) were removed on 2026-09-02 because they were built in isolation from each other and from the frontend, never integrated, and never deployed (see the CHANGELOG entry for that date). `backend/` above is the fresh rebuild, deliberately kept minimal (health check only) until it is wired to real data.
 
 ## Architecture (target — not yet built)
 
 | Component | Azure service | Status |
 |---|---|---|
 | Frontend | Azure Static Web Apps | Built (mock data) |
-| Backend | Azure App Service | Not started (reset 2026-09-02) |
+| Backend | Azure App Service | Minimal skeleton (`/api/health` only) |
 | Database | Azure SQL Database | Not started |
 | Authentication | Microsoft Entra ID | Not started |
 | AI assistant | Azure OpenAI | Not started |
@@ -54,7 +55,14 @@ npm run lint
 
 ### 2. Backend
 
-Not built yet. See `docs/CHANGELOG.md` (2026-09-02 reset entry) for context; a fresh backend effort will be tracked as a new issue.
+```bash
+cd backend
+npm install
+npm start
+```
+
+Listens on `PORT` (default `4000`). See `backend/README.md` for details, tests, and
+Azure App Service deployment notes. Currently only `GET /api/health` is implemented.
 
 ## Conventions
 
