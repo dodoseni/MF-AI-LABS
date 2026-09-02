@@ -122,3 +122,19 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
 - Open questions / risks:
   - No automated tests added (repo has none for the frontend yet); verified via `tsc -b`, `vite build`, and `oxlint` (clean, pre-existing warnings only).
   - Certification "Add" modal and status toggles, and Learning Plan checklists, only persist in component state (lost on refresh) — expected for a mock-data MVP, but worth flagging before QA treats it as a bug.
+
+## 2026-09-02 — Reset: remove unintegrated backend, AI service, and data model
+
+- Component: planning, backend, AI, data
+- Issue/ref: cancels MIKK-6, MIKK-7, MIKK-8, MIKK-17, MIKK-20, MIKK-23, MIKK-24 (Product Owner decision)
+- What was done:
+  - Deleted `backend/` (Express skeleton, health-check only), `levelup/` (Python FastAPI AI assistant with real Azure OpenAI + RAG + Entra ID), and `levelup-db/` (Azure SQL schema/seed/views) from the repository.
+  - Cancelled the corresponding Multica issues (MIKK-6, MIKK-7, MIKK-8) plus the stalled/duplicated Phase 2 follow-ups (MIKK-17 QA, MIKK-20 deployment-readiness analysis, MIKK-23 AI chatbot). MIKK-22 (a duplicate of MIKK-23) had already been removed independently.
+  - Updated `README.md` to drop repository-layout and getting-started sections for the removed components; architecture table now marked "target — not yet built" except frontend.
+- Decision/notes:
+  - Each of the three removed components was built independently, never integrated with each other or with `levelup-frontend`, and never deployed. The backend only exposed `/api/health`; the SQL schema was never applied to a database; the AI service was a disconnected Python app the Node backend never called. Marking this "done" work created a false signal of backend progress.
+  - The documented "Phase 2 plan" (intended issues MIKK-10–MIKK-16) was never actually created as tracked issues, so there was no real backlog to inherit from — nothing of substance is lost by resetting.
+  - Only `levelup-frontend/` (MIKK-3, MIKK-21) is considered shipped and is kept as-is.
+  - The backend will be rebuilt from scratch as a new, single tracked effort (starting from a mock-data API foundation) rather than three disconnected fragments built by different agents in parallel.
+- Open questions / risks:
+  - The Azure SQL schema (`levelup-db/`) and the real RAG/Entra ID logic (`levelup/backend/app.py`) are gone from `develop`; both remain recoverable from git history (pre-reset commits) if the team wants to reuse any of that work as reference during the rebuild.
