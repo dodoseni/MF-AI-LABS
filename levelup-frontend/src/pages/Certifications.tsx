@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Badge,
   Button,
@@ -10,6 +10,21 @@ import {
 import { certifications as initialCertifications } from '../data/mock'
 import type { Certification, CertificationStatus } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
+
+const FAVOURITES_STORAGE_KEY = 'levelup.favouriteCertifications'
+
+type CertificationFilter = CertificationStatus | 'all' | 'favourites'
+
+function getInitialFavourites(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const stored = window.localStorage.getItem(FAVOURITES_STORAGE_KEY)
+    const ids = stored ? (JSON.parse(stored) as string[]) : []
+    return new Set(ids)
+  } catch {
+    return new Set()
+  }
+}
 
 const statusTone: Record<CertificationStatus, string> = {
   completed: 'success',
@@ -33,27 +48,31 @@ const categories = [
 export default function Certifications() {
   const { t } = useLanguage()
   const [certifications, setCertifications] = useState<Certification[]>(initialCertifications)
-  const [filter, setFilter] = useState<CertificationStatus | 'all'>('all')
+  const [filter, setFilter] = useState<CertificationFilter>('all')
   const [category, setCategory] = useState('all')
   const [search, setSearch] = useState('')
-  const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ name: '', issuer: '', category: categories[0] })
+  const [favourites, setFavourites] = useState<Set<string>>(getInitialFavourites)
 
-  const filterOptions: { key: CertificationStatus | 'all'; label: string }[] = [
+  useEffect(() => {
+    window.localStorage.setItem(FAVOURITES_STORAGE_KEY, JSON.stringify(Array.from(favourites)))
+  }, [favourites])
+
+  const filterOptions: { key: CertificationFilter; label: string }[] = [
     { key: 'all', label: t('certifications.filter.all') },
     { key: 'completed', label: t('certifications.filter.completed') },
     { key: 'in-progress', label: t('certifications.filter.inProgress') },
     { key: 'missing', label: t('certifications.filter.missing') },
     { key: 'recommended', label: t('certifications.filter.recommended') },
+    { key: 'favourites', label: t('certifications.filter.favourites') },
   ]
 
   const completed = certifications.filter((c) => c.status === 'completed').length
   const inProgress = certifications.filter((c) => c.status === 'in-progress').length
   const missing = certifications.filter((c) => c.status === 'missing').length
-  const recommendedCount = certifications.filter((c) => c.status === 'recommended').length
 
   const filtered = certifications.filter((c) => {
-    const matchesFilter = filter === 'all' || c.status === filter
+    const matchesFilter =
+      filter === 'all' ? true : filter === 'favourites' ? favourites.has(c.id) : c.status === filter
     const matchesCategory = category === 'all' || c.category === category
     const q = search.trim().toLowerCase()
     const matchesSearch =
@@ -63,6 +82,18 @@ export default function Certifications() {
       c.category.toLowerCase().includes(q)
     return matchesFilter && matchesCategory && matchesSearch
   })
+
+  function toggleFavourite(id: string) {
+    setFavourites((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
 
   function updateStatus(id: string, status: CertificationStatus) {
     setCertifications((prev) =>
@@ -82,43 +113,17 @@ export default function Certifications() {
     )
   }
 
-  function addCertification() {
-    if (!form.name.trim()) return
-    const id = form.name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
-    const newCert: Certification = {
-      id: `${id}-${Date.now()}`,
-      name: form.name.trim(),
-      issuer: form.issuer.trim() || 'Custom',
-      status: 'in-progress',
-      category: form.category,
-      level: 'Associate',
-      progress: 0,
-      requiredFor: [],
-      description: 'Manually added certification.',
-    }
-    setCertifications((prev) => [newCert, ...prev])
-    setForm({ name: '', issuer: '', category: categories[0] })
-    setShowModal(false)
-  }
-
   return (
     <div>
       <PageHead
         title={t('title.certifications')}
         subtitle={t('certifications.subtitle')}
-        actions={
-          <Button onClick={() => setShowModal(true)}>
-            <Icon name="plus" size={16} />
-            {t('common.addCertification')}
-          </Button>
-        }
       />
 
-      <div className="grid grid-4 mb-16">
+      <div className="grid grid-3 mb-16">
         <StatCard icon="cert" label={t('certifications.stat.completed')} value={completed} detail={t('certifications.stat.completedDetail', { total: certifications.length })} tone="success" />
         <StatCard icon="clock" label={t('certifications.stat.inProgress')} value={inProgress} detail={t('certifications.stat.inProgressDetail')} tone="info" />
         <StatCard icon="alert" label={t('certifications.stat.missing')} value={missing} detail={t('certifications.stat.missingDetail')} tone="warning" />
-        <StatCard icon="sparkle" label={t('certifications.stat.recommended')} value={recommendedCount} detail={t('certifications.stat.recommendedDetail')} tone="violet" />
       </div>
 
       <div className="toolbar mb-16">
@@ -164,9 +169,33 @@ export default function Certifications() {
                 <div className="cert-issuer">{c.issuer} · {c.level}</div>
                 <div className="cert-name">{c.name}</div>
               </div>
-              <Badge tone={statusTone[c.status]} dot>
-                {t(`common.status.${c.status}` as const)}
-              </Badge>
+              <div className="cert-top-actions">
+                <button
+                  type="button"
+                  className={`cert-fav-btn ${favourites.has(c.id) ? 'active' : ''}`}
+                  onClick={() => toggleFavourite(c.id)}
+                  aria-pressed={favourites.has(c.id)}
+                  aria-label={
+                    favourites.has(c.id)
+                      ? t('certifications.favourite.remove')
+                      : t('certifications.favourite.add')
+                  }
+                  title={
+                    favourites.has(c.id)
+                      ? t('certifications.favourite.remove')
+                      : t('certifications.favourite.add')
+                  }
+                >
+                  <Icon
+                    name="star"
+                    size={18}
+                    style={{ fill: favourites.has(c.id) ? 'currentColor' : 'none' }}
+                  />
+                </button>
+                <Badge tone={statusTone[c.status]} dot>
+                  {t(`common.status.${c.status}` as const)}
+                </Badge>
+              </div>
             </div>
             <p className="cert-desc">{c.description}</p>
 
@@ -215,59 +244,6 @@ export default function Certifications() {
       {filtered.length === 0 && (
         <div className="card card-pad center" style={{ paddingBlock: 48 }}>
           <p style={{ color: 'var(--text-secondary)' }}>{t('certifications.empty')}</p>
-        </div>
-      )}
-
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">
-              <h3>{t('certifications.modal.title')}</h3>
-              <button type="button" className="modal-close" onClick={() => setShowModal(false)} aria-label={t('common.close')}>
-                <Icon name="close" size={18} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <label className="modal-field">
-                <span>{t('certifications.modal.name')}</span>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. AZ-500"
-                  autoFocus
-                />
-              </label>
-              <label className="modal-field">
-                <span>{t('certifications.modal.issuer')}</span>
-                <input
-                  type="text"
-                  value={form.issuer}
-                  onChange={(e) => setForm((f) => ({ ...f, issuer: e.target.value }))}
-                  placeholder="Microsoft"
-                />
-              </label>
-              <label className="modal-field">
-                <span>{t('certifications.modal.category')}</span>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                >
-                  {categories.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="modal-footer">
-              <Button variant="secondary" onClick={() => setShowModal(false)}>
-                {t('common.cancel')}
-              </Button>
-              <Button onClick={addCertification}>{t('certifications.modal.add')}</Button>
-            </div>
-          </div>
         </div>
       )}
     </div>

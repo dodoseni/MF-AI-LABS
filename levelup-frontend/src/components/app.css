@@ -1262,6 +1262,32 @@ table.data tbody tr:hover td {
   justify-content: space-between;
   gap: 10px;
 }
+.cert-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cert-fav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: var(--radius-sm, 6px);
+  transition: color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.cert-fav-btn:hover {
+  color: #d99a00;
+  background: rgba(217, 154, 0, 0.1);
+  transform: scale(1.08);
+}
+.cert-fav-btn.active {
+  color: #d99a00;
+}
 .cert-issuer {
   font-size: 12px;
   color: var(--text-muted);

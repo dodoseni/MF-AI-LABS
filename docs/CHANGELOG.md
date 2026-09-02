@@ -194,4 +194,22 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - Verified with `tsc -b` + `vite build` (clean) and `oxlint` (only pre-existing warnings, no new ones); visually verified Dashboard, Career Path (Level 1/3/4 selected), Certifications and Profile pages via a local Playwright screenshot pass.
 - Open questions / risks:
   - No automated tests exist for this frontend yet (repo-wide, pre-existing gap) — recommend Test-Agent add coverage for the new level-selection interaction on Career Path when a test suite is introduced.
+
+## 2026-09-02 — MIKK-34: Update Certifications tab (favourites, remove custom-cert creation and top stat)
+
+- Component: frontend
+- Issue/ref: MIKK-34
+- What was done:
+  - Removed the "Recommended" stat card (top-right of the 4-card summary row) — the certifications summary is now 3 cards (Completed / In progress / Missing); grid class switched from `grid-4` to the existing `grid-3`.
+  - Removed the "Add certification" button, its modal, and the `addCertification`/`form`/`showModal` state — users can no longer create arbitrary custom certifications from this page (`src/pages/Certifications.tsx`).
+  - Added a clickable star/favourite toggle to every certification card (top-right of the card header, next to the status badge). Favourited state is a `Set<string>` of certification ids persisted to `localStorage` (`levelup.favouriteCertifications`), following the same local-persistence pattern as the language preference (`LanguageContext`). Added a `star` icon to the shared `Icon` component (`src/components/Icon.tsx`) and `.cert-fav-btn`/`.cert-top-actions` styling (`components/app.css`).
+  - Added a new "Favourites" segmented-control tab next to "Missing"/"Recommended". Selecting it filters the grid to only certifications the user has starred, regardless of status, while still respecting the category filter and search box.
+  - Removed now-unused translation keys (`common.addCertification`, `certifications.stat.recommended(Detail)`, `certifications.modal.*`) and added `certifications.filter.favourites` and `certifications.favourite.add`/`.remove` (EN + NO) in `src/i18n/translations.ts`.
+- Decision/notes:
+  - Interpreted "Remove 'recommended' [card] in the top right" as the top-right **stat card** in the summary row (not the "Recommended" status filter tab or badge), since task 4 explicitly keeps "Recommended" as an existing tab that "Favourites" sits next to.
+  - Favourites are tracked independently of `CertificationStatus` (a cert can be `completed`/`in-progress`/`missing`/`recommended` **and** favourited at the same time), matching "view certifications they have favourited in other tabs."
+  - Chose to persist favourites in `localStorage` (unlike the rest of this mock-data page, which is in-memory `useState` only) since a favourites/bookmark list is expected to survive a refresh even before real backend wiring exists; this is a small, additive, backend-independent enhancement and doesn't conflict with the existing mock-data decision (MIKK-3/MIKK-21).
+  - Verified with `tsc -b` + `vite build` (clean) and `oxlint` (only the two pre-existing warnings, no new ones); visually verified via a local Playwright screenshot pass (summary row now 3 cards, star toggle fills gold and persists, Favourites tab shows only starred certs).
+- Open questions / risks:
+  - No automated tests exist for this frontend yet (repo-wide, pre-existing gap).
   - `AZ-800` vs `AZ-802` discrepancy above should be confirmed with Product Owner if the reference image is meant to be authoritative over the issue text.
