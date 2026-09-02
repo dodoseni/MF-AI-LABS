@@ -138,3 +138,24 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - The backend will be rebuilt from scratch as a new, single tracked effort (starting from a mock-data API foundation) rather than three disconnected fragments built by different agents in parallel.
 - Open questions / risks:
   - The Azure SQL schema (`levelup-db/`) and the real RAG/Entra ID logic (`levelup/backend/app.py`) are gone from `develop`; both remain recoverable from git history (pre-reset commits) if the team wants to reuse any of that work as reference during the rebuild.
+
+## 2026-09-02 — MIKK-25: Minimal LevelUp backend skeleton (Express + /api/health)
+
+- Component: backend
+- Issue/ref: MIKK-25
+- What was done:
+  - Rebuilt `backend/` from scratch as a clean, deployable Express skeleton (JavaScript, Node >= 20, npm) per the 2026-09-02 reset decision.
+  - Layout: `src/app.js` (Express app factory: `cors()`, `express.json()`, routes, 404 handler, centralized error handler), `src/server.js` (HTTP bootstrap), `src/routes/health.js` (`GET /api/health` → `{ "status": "ok" }`).
+  - `package.json` with `start` (`node src/server.js`), `dev` (`node --watch src/server.js`), `test` (`jest --runInBand`), `engines.node: ">=20"`.
+  - Server reads `process.env.PORT`, falls back to `4000` locally, binds `0.0.0.0` (required for Azure App Service Linux containers).
+  - Added Jest + Supertest test (`tests/health.test.js`) asserting `GET /api/health` returns HTTP 200 with `{ "status": "ok" }`.
+  - Added `backend/README.md` (install, local startup, test instructions, required Node version, Azure App Service deployment notes) and `backend/.gitignore` (`node_modules/`, `.env*`, `coverage/`).
+  - Updated root `README.md`: backend row in the architecture table and the "Getting started" section now reflect the minimal skeleton instead of "not built yet".
+  - Verified: `npm install`, `npm test` (1/1 passing), `npm start` (manually curled `/api/health` → 200 `{"status":"ok"}`; unknown route → 404).
+- Decision/notes:
+  - Deliberately excludes Azure SQL, authentication, AI/Foundry integration, and product endpoints per the issue scope — this is foundation only, to avoid repeating the disconnected-fragments problem from the 2026-09-02 reset.
+  - `app.js`/`server.js` split (app factory vs. listener) so tests can import the Express app directly without binding a port.
+  - CORS is currently unrestricted (`cors()` with defaults); flagged in `backend/README.md` to restrict allowed origins before any shared/production deployment.
+- Open questions / risks:
+  - No CI/CD pipeline configured yet for Azure App Service; deployment is manual (Oryx build via `npm install` + `npm start` once the App Service Node stack is set to >= 20).
+  - Follow-up work (Azure SQL wiring, auth, AI integration, real product endpoints) should be tracked as separate issues against this foundation, coordinating with Data Engineer (schema/contract) and AI Engineer (auth/AI endpoints) before adding routes.
