@@ -18,7 +18,17 @@ const statusTone: Record<CertificationStatus, string> = {
   recommended: 'violet',
 }
 
-const categories = ['Cloud Platform', 'Development', 'Security', 'Data & AI', 'DevOps', 'Architecture']
+const categories = [
+  'Cloud Platform',
+  'Development',
+  'Security',
+  'Data & AI',
+  'DevOps',
+  'Architecture',
+  'Infrastructure',
+  'Collaboration',
+  'Internal',
+]
 
 export default function Certifications() {
   const { t } = useLanguage()

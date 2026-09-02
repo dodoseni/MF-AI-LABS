@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from './Icon'
+import type { CareerLevel } from '../types'
 
 /* ---------- Card ---------- */
 export function Card({
@@ -201,6 +202,51 @@ export function LevelDots({
             i <= current ? 'filled' : i === target ? 'target' : ''
           }`}
         />
+      ))}
+    </div>
+  )
+}
+
+/* ---------- Level roadmap ---------- */
+const levelStatusIcon: Record<CareerLevel['status'], string> = {
+  completed: 'checkCircle',
+  current: 'clock',
+  upcoming: 'circle',
+}
+
+export function LevelRoadmap({
+  levels,
+  selectedId,
+  onSelect,
+}: {
+  levels: CareerLevel[]
+  selectedId?: string
+  onSelect?: (id: string) => void
+}) {
+  return (
+    <div className="level-roadmap" role={onSelect ? 'tablist' : undefined}>
+      {levels.map((l, i) => (
+        <div className="level-roadmap-item" key={l.id}>
+          <button
+            type="button"
+            role={onSelect ? 'tab' : undefined}
+            aria-selected={onSelect ? selectedId === l.id : undefined}
+            className={`level-chip status-${l.status} ${
+              selectedId === l.id ? 'selected' : ''
+            } ${onSelect ? '' : 'static'}`}
+            onClick={() => onSelect?.(l.id)}
+          >
+            <span className={`level-chip-icon icon-${l.status}`}>
+              <Icon name={levelStatusIcon[l.status]} size={15} />
+            </span>
+            {l.name}
+          </button>
+          {i < levels.length - 1 && (
+            <span className="level-roadmap-arrow">
+              <Icon name="arrowRight" size={14} />
+            </span>
+          )}
+        </div>
       ))}
     </div>
   )

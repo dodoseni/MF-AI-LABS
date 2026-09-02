@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
+import { Badge, Card, CardHead, Icon, LevelRoadmap, PageHead, ProgressBar } from '../components/ui'
 import { careerPath } from '../data/mock'
 import type { CareerLevel } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -16,32 +17,35 @@ const statusKey = {
   upcoming: 'common.status.upcoming',
 } as const
 
-function LevelCard({ level }: { level: CareerLevel }) {
+function LevelDetail({ level }: { level: CareerLevel }) {
   const { t } = useLanguage()
-  const isCurrent = level.status === 'current'
   const locked = level.status === 'upcoming'
   const met = level.requirements.filter((r) => r.met).length
+  const requirementSatisfied =
+    level.requirementMode === 'choose' && level.chooseAtLeast
+      ? met >= level.chooseAtLeast
+      : level.requirementMode === 'all'
+        ? met === level.requirements.length
+        : false
 
   return (
-    <div className={`level-card ${isCurrent ? 'current' : ''} ${locked ? 'level-card-locked' : ''}`}>
+    <div className={`level-card level-detail ${level.status === 'current' ? 'current' : ''} ${locked ? 'level-card-locked' : ''}`}>
       <div className="level-card-top">
         <div className="level-badge" style={{ background: level.color }}>
-          <Icon name="level" size={20} />
+          <Icon name="level" size={22} />
         </div>
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span className="level-name">{level.name}</span>
             <Badge tone={statTone[level.status]} dot>
               {t(statusKey[level.status])}
             </Badge>
           </div>
-          <div className="level-years">
-            {level.yearsExperience} · {level.role}
-          </div>
+          <div className="level-years">{level.tagline}</div>
         </div>
         {!locked && (
           <div style={{ textAlign: 'right', minWidth: 56 }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-strong)' }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-strong)' }}>
               {level.progress}%
             </div>
             <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('career.met')}</div>
@@ -51,35 +55,55 @@ function LevelCard({ level }: { level: CareerLevel }) {
 
       <p className="level-desc">{level.description}</p>
 
-      {isCurrent && (
+      {!locked && (
         <div style={{ padding: '0 20px 14px' }}>
           <ProgressBar value={level.progress} />
         </div>
       )}
 
-      <div className="level-req-head">
-        <span>{t('career.requirements', { met, total: level.requirements.length })}</span>
-        {isCurrent && (
-          <span style={{ color: 'var(--brand-600)' }}>
-            {t('career.toGo', { count: level.requirements.length - met })}
-          </span>
-        )}
-      </div>
-      <div>
-        {level.requirements.map((req) => (
-          <div className="req-item" key={req.label}>
-            <span className="req-check" style={{ color: req.met ? 'var(--success)' : 'var(--gray-300)' }}>
-              <Icon name={req.met ? 'checkCircle' : 'circle'} size={18} />
-            </span>
-            <div>
-              <div style={{ fontWeight: 500, color: 'var(--text-strong)' }}>
-                {req.label}
-              </div>
-              <div className="req-detail">{req.detail}</div>
+      {level.requirementMode === 'holistic' ? (
+        <>
+          <div className="level-req-head">
+            <span>{level.requirementNote}</span>
+          </div>
+          <div style={{ padding: '14px 20px 18px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {level.focusAreas?.map((f) => (
+                <div className="req-item" key={f}>
+                  <span className="req-check" style={{ color: 'var(--brand-600)' }}>
+                    <Icon name="target" size={18} />
+                  </span>
+                  <div style={{ fontWeight: 500, color: 'var(--text-strong)' }}>{f}</div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        </>
+      ) : (
+        <>
+          <div className="level-req-head">
+            <span>{level.requirementNote}</span>
+            <span style={{ color: requirementSatisfied ? 'var(--success)' : 'var(--brand-600)' }}>
+              {level.requirementMode === 'choose'
+                ? t('career.chosenOf', { count: met, needed: level.chooseAtLeast ?? 0 })
+                : t('career.requirements', { met, total: level.requirements.length })}
+            </span>
+          </div>
+          <div>
+            {level.requirements.map((req) => (
+              <div className="req-item" key={req.label}>
+                <span className="req-check" style={{ color: req.met ? 'var(--success)' : 'var(--gray-300)' }}>
+                  <Icon name={req.met ? 'checkCircle' : 'circle'} size={18} />
+                </span>
+                <div>
+                  <div style={{ fontWeight: 500, color: 'var(--text-strong)' }}>{req.label}</div>
+                  <div className="req-detail">{req.detail}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -87,8 +111,13 @@ function LevelCard({ level }: { level: CareerLevel }) {
 export default function CareerPathPage() {
   const { t } = useLanguage()
   const current = careerPath.find((l) => l.status === 'current')!
+  const currentIndex = careerPath.findIndex((l) => l.id === current.id)
+  const next = careerPath[currentIndex + 1]
   const completedCount = careerPath.filter((l) => l.status === 'completed').length
   const currentMet = current.requirements.filter((r) => r.met).length
+
+  const [selectedId, setSelectedId] = useState(current.id)
+  const selected = careerPath.find((l) => l.id === selectedId) ?? current
 
   return (
     <div>
@@ -105,7 +134,9 @@ export default function CareerPathPage() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: 12,
+              marginBottom: 16,
+              flexWrap: 'wrap',
+              gap: 8,
             }}
           >
             <span style={{ fontWeight: 700, color: 'var(--text-strong)', fontSize: 14 }}>
@@ -115,47 +146,26 @@ export default function CareerPathPage() {
               {t('career.levelsCompleted', { done: completedCount, total: careerPath.length })}
             </span>
           </div>
-          <div className="career-track">
-            {careerPath.map((l) => (
-              <div
-                key={l.id}
-                className={`track-seg ${l.progress > 0 ? 'filled' : ''} ${
-                  l.status === 'current' ? 'current' : ''
-                }`}
-              />
-            ))}
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-            }}
-          >
-            {careerPath.map((l) => (
-              <span key={l.id} style={{ color: l.status === 'upcoming' ? 'var(--text-muted)' : undefined }}>
-                {l.name}
-              </span>
-            ))}
-          </div>
+          <LevelRoadmap levels={careerPath} selectedId={selectedId} onSelect={setSelectedId} />
+          <p className="mt-16" style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+            {t('career.selectHint')}
+          </p>
         </div>
       </Card>
 
       <div className="grid grid-main-2 mt-24">
-        {/* Level cards */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {careerPath.map((l) => (
-            <LevelCard key={l.id} level={l} />
-          ))}
+        {/* Selected level detail */}
+        <div>
+          <LevelDetail level={selected} />
         </div>
 
-        {/* Prediction / summary sidebar */}
+        {/* Prediction / summary sidebar — always reflects the user's real current level */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className="next-level-card">
             <div className="next-label">{t('career.nextReadiness')}</div>
-            <div className="next-title">{current.name} → {careerPath.find((l) => l.status === 'upcoming')?.name}</div>
+            <div className="next-title">
+              {current.name} → {next?.name ?? '—'}
+            </div>
             <ProgressBar value={current.progress} />
             <div className="next-meta">
               <span>{t('career.percentComplete', { value: current.progress })}</span>
@@ -179,6 +189,11 @@ export default function CareerPathPage() {
                     </div>
                   </div>
                 ))}
+              {current.requirements.every((r) => r.met) && (
+                <div style={{ padding: '12px 20px', fontSize: 13, color: 'var(--text-secondary)' }}>
+                  {t('career.allMet')}
+                </div>
+              )}
             </div>
           </Card>
 
