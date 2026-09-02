@@ -195,3 +195,18 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
 - Open questions / risks:
   - No automated tests exist for this frontend yet (repo-wide, pre-existing gap) — recommend Test-Agent add coverage for the new level-selection interaction on Career Path when a test suite is introduced.
   - `AZ-800` vs `AZ-802` discrepancy above should be confirmed with Product Owner if the reference image is meant to be authoritative over the issue text.
+## 2026-09-02 — MIKK-32: Simplify Dashboard — remove goals/recommendations/competency clutter
+
+- Component: frontend
+- Issue/ref: MIKK-32
+- What was done:
+  - Slimmed `Dashboard.tsx` down to the components explicitly listed as "Keep" in the issue: header (welcome + intro text), the "Progress to Next Level" hero card, and the "Current Level" / "Level certifications" statistic cards.
+  - Removed everything called out under "Remove": the "Recommended Next Actions" card (which surfaced Career Path / Study Plan / Certification recommendations), the "AI Recommendation" card and its "Open Assistant" entry point, the "Active Goals" and "Competencies" statistic cards, the "Competency Development" card (Sales/Delivery/Manage/Entrepreneurship/Develop breakdown + level dots + growth badges), and the "Upcoming Milestones" card (the dashboard's learning-plan section).
+  - Dropped now-unused imports/data from `Dashboard.tsx` (`competencyAreas`, `recommendedActions`, `LevelDots`, `Badge`, `react-router-dom` `Link`, the `impactIcon` map) and changed the stats grid from `grid-4` to the existing `grid-2` utility class (2 cards instead of 4).
+- Decision/notes:
+  - Kept the "Certification progress" card (progress bar + X/Y completed, link to `/certifications`) and the "Your career roadmap" card (`LevelRoadmap`, added in MIKK-28) — neither was named in the issue's "Remove" list, and both are direct extensions of the explicitly-kept "Current Level"/"Certifications" hero content rather than the recommendation/goals/competency clutter the issue targets.
+  - Scope was limited to the Dashboard page only. The standalone `Competencies` page, its nav entry, and the `competencyAreas` / `recommendedActions` mock data were left untouched — they're still used by `Profile.tsx` and `Competencies.tsx`, and the issue body is scoped entirely to "Dashboard" (no mention of removing the Competencies page or nav item itself).
+  - No goals-specific UI existed outside the "Active Goals" stat card and learning-plan milestones (both removed); there is no separate "Goals" page in the app.
+- Open questions / risks:
+  - If the intent was also to delete the standalone `/competencies` page and nav link entirely (title says "Delete Competencies and goals"), that's a separate, larger change not covered here — flag to Product Owner if that's actually wanted, since it would also require touching `Sidebar.tsx`, `Profile.tsx`, routing, and translations.
+  - Verified with `tsc -b` (clean), `vite build` (clean), `oxlint` (only pre-existing warnings), and a local Playwright screenshot of the rendered Dashboard.
