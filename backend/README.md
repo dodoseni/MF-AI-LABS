@@ -1,8 +1,9 @@
 # LevelUp Backend
 
-Minimal Express.js backend skeleton for the LevelUp platform. This is a clean, deployable
-foundation only — it does not yet implement Azure SQL, authentication, AI/Foundry
-integration, or product endpoints. Those will be built as separate, tracked follow-up work.
+Express.js backend for the LevelUp platform. It exposes read-only REST API contracts for
+the frontend, currently backed by **local mock data**. Authentication, Azure SQL, and
+AI/Foundry integration are intentionally out of scope for this stage and will be built as
+separate, tracked follow-up work.
 
 ## Required Node version
 
@@ -37,32 +38,86 @@ curl http://localhost:4000/api/health
 # {"status":"ok"}
 ```
 
+Local base URL: **`http://localhost:4000`** (all product endpoints below are under `/api`).
+
 ## Tests
 
 ```bash
 npm test
 ```
 
-Runs the Jest + Supertest suite, which verifies `GET /api/health` returns HTTP 200
-with `{ "status": "ok" }`.
+Runs the Jest + Supertest suite. At minimum it verifies each endpoint returns HTTP 200
+(and that unknown routes return HTTP 404), plus a basic shape check for every response so
+accidental contract changes are caught.
 
 ## API
 
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/health` | Liveness check. Returns `{ "status": "ok" }`. |
+All endpoints are read-only (`GET` only). Successful responses are `HTTP 200` JSON; list
+endpoints wrap their payload as `{ "data": [...] }`, single-resource endpoints as
+`{ "data": {...} }`. Unknown routes return `HTTP 404` with `{ "error": "Not Found" }`;
+unexpected errors are handled by the centralized error handler in `src/app.js`.
+
+| Method | Path | Description | Shape |
+|---|---|---|---|
+| GET | `/api/health` | Liveness check. | `{ "status": "ok" }` |
+| GET | `/api/profile` | The current mock user's profile (identity, level, office). | `{ "data": { ...profile } }` |
+| GET | `/api/certifications` | All certifications (status, category, level, progress, description). | `{ "data": [ ...certifications ] }` |
+| GET | `/api/competencies` | The five competency areas (current/target/previous self-assessment levels). | `{ "data": [ ...competencies ] }` |
+| GET | `/api/career-levels` | Career path levels in progression order, each with its requirements. | `{ "data": [ ...careerLevels ] }` |
+| GET | `/api/learning-plan` | The user's learning plan: development goals (+ milestones), study tasks, weekly plan, calendar events. | `{ "data": { "goals": [...], "tasks": [...], "weeklyPlan": [...], "calendar": [...] } }` |
+
+**Data is temporary mock data.** Every response currently comes from static objects/arrays
+in `src/data/`, wired through a repository layer (see below) rather than a database. This
+lets the frontend build and stabilize against a real API contract before an actual Azure
+SQL–backed implementation exists — swapping the repository layer is intended to be a
+drop-in change with no impact on routes, controllers, or the public API shape.
 
 ## Project structure
 
 ```
 backend/
   src/
-    app.js         # Express app: middleware, routes, error handling
-    server.js       # HTTP server bootstrap (PORT binding)
-    routes/
-      health.js      # GET /api/health
+    app.js               # Express app: middleware, routes, error handling
+    server.js             # HTTP server bootstrap (PORT binding)
+    routes/                # Express routers — map path -> controller, no logic
+      health.js
+      profile.js
+      certifications.js
+      competencies.js
+      careerLevels.js
+      learningPlan.js
+    controllers/           # req/res handling — call a service, shape the HTTP response
+      profileController.js
+      certificationsController.js
+      competenciesController.js
+      careerLevelsController.js
+      learningPlanController.js
+    services/              # Business logic — currently pass-through to repositories
+      profileService.js
+      certificationsService.js
+      competenciesService.js
+      careerLevelsService.js
+      learningPlanService.js
+    repositories/          # Data access — the ONLY layer that knows data is mocked.
+      profileRepository.js         #   Promise-based on purpose: a future Azure SQL
+      certificationsRepository.js  #   repository only needs to keep the same method
+      competenciesRepository.js    #   names/shapes for routes/controllers/services to
+      careerLevelsRepository.js    #   keep working unchanged.
+      learningPlanRepository.js
+    data/                  # Local mock datasets, aligned with levelup-frontend/src/data/mock.ts
+      profile.js
+      certifications.js
+      competencies.js
+      careerLevels.js
+      learningPlan.js
   tests/
-    health.test.js   # Supertest coverage for /api/health
+    health.test.js
+    profile.test.js
+    certifications.test.js
+    competencies.test.js
+    careerLevels.test.js
+    learningPlan.test.js
+    notFound.test.js
   package.json
 ```
 

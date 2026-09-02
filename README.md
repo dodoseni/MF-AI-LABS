@@ -7,7 +7,7 @@ LevelUp brings together certifications, learning resources, career requirements,
 ## Repository layout
 
 - `levelup-frontend/` — React 19 + TypeScript + Vite app: Dashboard, Certifications, Competency Development, Career Path, Learning Plan, AI Assistant, and Profile. Fully functional on mock data (`src/data/mock.ts`); no backend wiring yet.
-- `backend/` — Express.js API skeleton (Node >= 20). Currently exposes only `GET /api/health`; no database, auth, or AI wiring yet. See `backend/README.md`.
+- `backend/` — Express.js API (Node >= 20). `GET /api/health` plus read-only mock-data-backed contracts (`/api/profile`, `/api/certifications`, `/api/competencies`, `/api/career-levels`, `/api/learning-plan`); no database, auth, or AI wiring yet. See `backend/README.md`.
 - `docs/CHANGELOG.md` — shared, version-controlled record of completed tasks. Append an entry per task.
 
 
@@ -16,7 +16,7 @@ LevelUp brings together certifications, learning resources, career requirements,
 | Component | Azure service | Status |
 |---|---|---|
 | Frontend | Azure Static Web Apps | Built (mock data) |
-| Backend | Azure App Service | Minimal skeleton (`/api/health` only) |
+| Backend | Azure App Service | Read-only API contracts on mock data |
 | Database | Azure SQL Database | Not started |
 | Authentication | Microsoft Entra ID | Not started |
 | AI assistant | Azure OpenAI | Not started |
@@ -60,8 +60,9 @@ npm install
 npm start
 ```
 
-Listens on `PORT` (default `4000`). See `backend/README.md` for details, tests, and
-Azure App Service deployment notes. Currently only `GET /api/health` is implemented.
+Listens on `PORT` (default `4000`). See `backend/README.md` for the full endpoint list,
+tests, and Azure App Service deployment notes. Endpoints are read-only and backed by
+local mock data (`backend/src/data/`) — no database yet.
 
 ## Conventions
 

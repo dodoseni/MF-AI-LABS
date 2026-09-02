@@ -173,3 +173,28 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - No new commit/SHA was produced by this task; `develop` remains at `5d4e6c6` (already on `origin/develop` prior to this run).
 - Open questions / risks:
   - None — merge and tests confirmed green on `develop` as-is.
+
+## 2026-09-02 — MIKK-29: LevelUp backend API contracts with mock data (read-only, `backend/`)
+
+- Component: backend
+- Issue/ref: MIKK-29
+- What was done:
+  - Extended `backend/` with five new read-only endpoints, all under `/api`: `GET /profile`, `GET /certifications`, `GET /competencies`, `GET /career-levels`, `GET /learning-plan`. `GET /api/health` is unchanged.
+  - Introduced a layered architecture per the issue spec: `src/routes/` (path → controller, no logic) → `src/controllers/` (req/res, calls a service, wraps errors via `next(err)`) → `src/services/` (business logic, currently pass-through) → `src/repositories/` (the only layer that knows the data is mocked; every method is `async`/`Promise`-based on purpose) → `src/data/` (plain mock datasets).
+  - Response envelope convention: list endpoints return `{ "data": [...] }`, single-resource endpoints return `{ "data": {...} }` (`/api/profile` and the `/api/learning-plan` bundle object). `/api/health` keeps its pre-existing bare `{ "status": "ok" }` shape (contract must not change).
+  - Mock data is a direct, field-for-field port of `levelup-frontend/src/data/mock.ts` + `levelup-frontend/src/types/index.ts` (`currentUser`, `certifications`, `competencyAreas`, `careerPath`, `developmentGoals`/`studyPlan`/`weeklyStudyPlan`/`calendarEvents`) — same ids, statuses, categories, progress values, and relationships (e.g. certification `requiredFor` ↔ career-level `requirements`, career-level array order = progression order Consultant → Senior → Principal → Enterprise Architect). No new domain model was invented. The frontend file was read for reference only — it is not imported at runtime, keeping `backend/` independently deployable.
+  - `GET /api/learning-plan` returns one combined object (`{ goals, tasks, weeklyPlan, calendar }`) instead of four separate endpoints, since the frontend Learning Plan page consumes all four together as one page-level resource.
+  - `GET /api/profile` adds an `id` (`amalie-berg`) and a derived `email` field (not present in the frontend mock) to give the resource a stable key and a realistic profile shape for future auth/DB wiring; every other field matches `currentUser` from the frontend mock exactly.
+  - Added Jest + Supertest coverage: one test file per endpoint (`tests/profile.test.js`, `certifications.test.js`, `competencies.test.js`, `careerLevels.test.js`, `learningPlan.test.js`) plus `tests/notFound.test.js` for the 404 path, each asserting HTTP status and basic response shape. `tests/health.test.js` (pre-existing) untouched. `npm ci && npm test` → 7/7 suites, 7/7 tests passing.
+  - Updated `backend/README.md`: full endpoint table with description + response shape, local base URL, explicit "data is temporary mock data" + "repository layer is intended to be replaced by Azure SQL later" notes, and an updated project-structure tree. Updated root `README.md` (repository layout + architecture table + getting-started) to reflect the new endpoints instead of "`/api/health` only".
+- Decision/notes:
+  - Repository methods are `async`/return `Promise`s even though the current implementation is synchronous in-memory data — this is deliberate so a future Azure SQL repository can be swapped in with the exact same method signatures (`findAll()`, `findCurrentProfile()`, `findGoals()`, etc.) and zero changes to services/controllers/routes.
+  - `learning-plan` is intentionally a single combined resource rather than four (`/goals`, `/study-tasks`, `/weekly-plan`, `/calendar`) to match how the frontend actually consumes the data (one page, one fetch) — flag for Data Engineer/AI Engineer if a future consumer needs these split.
+  - Certification `progress`/`earnedDate` are `null` when not applicable (e.g. a `missing` cert has no `progress`) rather than omitted, so the frontend/consumers can rely on the fields always being present.
+  - Did not add a shared response-envelope helper/module — each controller writes `{ data: ... }` explicitly. Small enough surface for now; worth extracting into a shared `sendSuccess()` helper if more endpoints are added.
+  - No routing/controller/service/repository file exceeds ~20-40 lines; kept deliberately thin per the issue's "route/controller layer must not directly contain large mock datasets" requirement.
+  - Scope respected: no mssql/DB dependency added, no auth, no AI, no POST/PUT/PATCH/DELETE, `levelup-frontend/` untouched, GitHub Actions deploy workflow (`.github/workflows/levelup-api-dev.yml`) untouched.
+- Open questions / risks:
+  - `/api/profile`'s `id`/`email` fields are additions beyond the frontend's `currentUser` mock — Data Engineer should confirm these align with (or should be renamed to match) the eventual Azure SQL `users` table's key/contact columns before the frontend is wired to real auth.
+  - `career-levels` response order relies on array order, not an explicit `order`/`sequence` field — fine for a single hardcoded career track, but will need an explicit ordering column if multiple job-family tracks are introduced (see the earlier Data Engineer note on `job_family_level` in the MIKK-7 entry above, if that schema is revived).
+  - No pagination/filtering on any list endpoint (not required by the current frontend or this issue) — flag if certifications/competencies lists grow large enough to need it.
