@@ -210,3 +210,21 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
 - Open questions / risks:
   - If the intent was also to delete the standalone `/competencies` page and nav link entirely (title says "Delete Competencies and goals"), that's a separate, larger change not covered here — flag to Product Owner if that's actually wanted, since it would also require touching `Sidebar.tsx`, `Profile.tsx`, routing, and translations.
   - Verified with `tsc -b` (clean), `vite build` (clean), `oxlint` (only pre-existing warnings), and a local Playwright screenshot of the rendered Dashboard.
+
+## 2026-09-02 — MIKK-38: Azure SQL connectivity decision + Projects smoke-test provisioning (passwordless / Managed Identity)
+
+- Component: data, backend, infra
+- Issue/ref: MIKK-38 (assigned to Back-end Developer for the code side)
+- What was done:
+  - Direct-message thread with saine.drammeh established a real, Sopra Steria–supervised Azure SQL target: server `mikkelrev.database.windows.net`, database `mikelrev`. An Azure App Service `levelup-api-dev` already exists and auto-deploys `backend/` from `develop` via `.github/workflows/levelup-api-dev.yml` — confirmed this is where the backend actually runs (not any VM).
+  - Auth decision: **passwordless / Azure AD Managed Identity** (App Service system-assigned identity), not a SQL login+password stored in Key Vault. No long-lived DB credential exists anywhere with this approach.
+  - Added `backend/sql/2026-09-02-projects-smoketest.sql`: creates a minimal, disposable `dbo.Projects` table (`Id`, `Name`, `CreatedAt`), a database user for the `levelup-api-dev` managed identity (`CREATE USER [levelup-api-dev] FROM EXTERNAL PROVIDER;`), and least-privilege grants scoped to that one table only (`GRANT SELECT, INSERT`, not `db_datareader`/`db_datawriter`). Must be run manually by someone with AAD-admin rights on the SQL Server — no agent has or should have credentials to this resource.
+  - Opened MIKK-38 with the full backend spec (connection module using `mssql` + `azure-active-directory-default` auth type via `@azure/identity`, env vars `SQL_SERVER`/`SQL_DATABASE`, new `POST /api/projects` + `GET /api/projects` routes following the existing routes→controllers→services→repositories layering) and assigned it to Back-end Developer.
+- Decision/notes:
+  - **`Projects` is a disposable connectivity smoke-test table only** — intentionally separate from, and not a substitute for, the real LevelUp data model (certifications/competencies/career levels), which remains a distinct, not-yet-started effort.
+  - An Azure Key Vault (`Hemmelig-safe`) was created by the user, but is **not on the critical path** for this passwordless auth mode — there is no secret to protect (no password in the connection). Key Vault stays available for any future genuine secret (e.g. a third-party API key); do not build an unnecessary Key Vault-reference dependency into the SQL connection string.
+  - An earlier attempt granted a **VM's** managed identity (`slazmikkelrev02`) DB access — that identity is irrelevant to this chain since the backend runs in App Service, not on the VM. Not wasted work, just wired to the wrong resource for this purpose.
+  - Secrets rule reaffirmed: no connection strings/credentials in code, chat, or issue text — the SQL script and issue only reference resource/identity *names*, never values.
+- Open questions / risks:
+  - End-to-end verification is blocked on 4 manual infra steps (tracked in MIKK-38): turn on `levelup-api-dev`'s system-assigned identity, run the SQL provisioning script, confirm the SQL Server firewall allows the App Service, add the `SQL_SERVER`/`SQL_DATABASE` App Settings. None of these can be done by an agent against a Sopra-supervised resource.
+  - Once this smoke test is verified, the real data model work (cancelled earlier as MIKK-7) should be re-scoped and re-opened as its own tracked effort against this now-proven connectivity path — not conflated with the disposable `Projects` table.
