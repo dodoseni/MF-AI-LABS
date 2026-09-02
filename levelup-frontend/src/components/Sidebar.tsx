@@ -7,7 +7,6 @@ import type { TranslationKey } from '../i18n/translations'
 const mainNav: { to: string; labelKey: TranslationKey; icon: string; end?: boolean }[] = [
   { to: '/', labelKey: 'nav.dashboard', icon: 'dashboard', end: true },
   { to: '/certifications', labelKey: 'nav.certifications', icon: 'cert' },
-  { to: '/competencies', labelKey: 'nav.competencies', icon: 'comp' },
   { to: '/career', labelKey: 'nav.career', icon: 'level' },
   { to: '/learning', labelKey: 'nav.learning', icon: 'grad' },
 ]

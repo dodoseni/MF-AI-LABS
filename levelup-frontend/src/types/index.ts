@@ -18,24 +18,6 @@ export interface Certification {
   documents?: string[]
 }
 
-export type CompetencyArea =
-  | 'Sales'
-  | 'Delivery'
-  | 'Manage'
-  | 'Entrepreneurship'
-  | 'Develop'
-
-export type SelfAssessmentLevel = 1 | 2 | 3 | 4 | 5
-
-export interface CompetencyEntry {
-  area: CompetencyArea
-  label: string
-  description: string
-  current: SelfAssessmentLevel
-  target: SelfAssessmentLevel
-  previous: SelfAssessmentLevel
-}
-
 /** How a level's certification requirements should be interpreted. */
 export type LevelRequirementMode =
   | 'all' // hold every certification listed

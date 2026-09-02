@@ -2,7 +2,6 @@ import type {
   CalendarEvent,
   CareerLevel,
   Certification,
-  CompetencyEntry,
   DevelopmentGoal,
   RecommendedAction,
   WeeklyPlanDay,
@@ -32,13 +31,6 @@ export const dashboardStats = [
     value: '6 / 8',
     detail: '2 more to reach Level 4',
     tone: 'success',
-  },
-  {
-    icon: 'comp',
-    label: 'Competencies',
-    value: '3.6 / 5',
-    detail: '2 areas to grow',
-    tone: 'info',
   },
   {
     icon: 'goal',
@@ -362,54 +354,6 @@ export const certifications: Certification[] = [
   },
 ]
 
-export const competencyAreas: CompetencyEntry[] = [
-  {
-    area: 'Sales',
-    label: 'Sales',
-    description:
-      'Driving business development, identifying opportunities and winning work for Sopra Steria and clients.',
-    current: 3,
-    target: 4,
-    previous: 2,
-  },
-  {
-    area: 'Delivery',
-    label: 'Delivery',
-    description:
-      'Delivering high-quality outcomes for clients with solid project and product execution.',
-    current: 4,
-    target: 4,
-    previous: 4,
-  },
-  {
-    area: 'Manage',
-    label: 'Manage',
-    description:
-      'Leading teams, people development, stakeholder management and running project delivery.',
-    current: 3,
-    target: 4,
-    previous: 3,
-  },
-  {
-    area: 'Entrepreneurship',
-    label: 'Entrepreneurship',
-    description:
-      'Innovating, building new offerings and taking ownership of commercial opportunities.',
-    current: 3,
-    target: 4,
-    previous: 2,
-  },
-  {
-    area: 'Develop',
-    label: 'Develop',
-    description:
-      'Growing the competence, career and wellbeing of the people you work with.',
-    current: 4,
-    target: 4,
-    previous: 3,
-  },
-]
-
 export const careerPath: CareerLevel[] = [
   {
     id: 'level-1',
@@ -515,19 +459,6 @@ export const developmentGoals: DevelopmentGoal[] = [
     ],
   },
   {
-    id: 'g2',
-    title: 'Strengthen Sales competency to level 4',
-    category: 'Competency',
-    status: 'active',
-    progress: 40,
-    dueDate: '2026-12-15',
-    milestones: [
-      { id: 'm1', label: 'Complete sales training workshop', date: '2026-09-30', done: true },
-      { id: 'm2', label: 'Co-lead one proposal submission', date: '2026-11-01', done: false },
-      { id: 'm3', label: 'Present at internal sales forum', date: '2026-12-15', done: false },
-    ],
-  },
-  {
     id: 'g3',
     title: 'Complete DevOps practices deep-dive',
     category: 'Learning',
@@ -616,14 +547,11 @@ export const calendarEvents: CalendarEvent[] = [
   { id: 'e3', date: '2026-09-11', title: 'Hands-on practice lab', type: 'study' },
   { id: 'e4', date: '2026-09-13', title: 'Weekly quiz + recap', type: 'study' },
   { id: 'e5', date: '2026-09-15', title: 'Complete AZ-305 Design module', type: 'milestone' },
-  { id: 'e6', date: '2026-09-30', title: 'Sales training workshop', type: 'study' },
   { id: 'e7', date: '2026-10-15', title: 'AZ-305 practice exam — target 70%+', type: 'practice' },
   { id: 'e8', date: '2026-10-15', title: 'Finish Azure DevOps course', type: 'study' },
-  { id: 'e9', date: '2026-11-01', title: 'Co-lead one proposal submission', type: 'milestone' },
   { id: 'e10', date: '2026-11-15', title: 'Implement CI/CD on a demo project', type: 'study' },
   { id: 'e11', date: '2026-11-30', title: 'AZ-305 certification exam', type: 'exam' },
   { id: 'e12', date: '2026-12-01', title: 'DevOps practices deep-dive due', type: 'milestone' },
-  { id: 'e13', date: '2026-12-15', title: 'Present at internal sales forum', type: 'milestone' },
 ]
 
 export const recommendedActions: RecommendedAction[] = [
@@ -646,16 +574,6 @@ export const recommendedActions: RecommendedAction[] = [
     category: 'Certification',
     href: '/certifications',
     cta: 'View certifications',
-  },
-  {
-    id: 'r3',
-    title: 'Sales competency needs attention',
-    description:
-      'Competency self-assessment level 3 → 4 requires co-leading a proposal. Add a goal or activity.',
-    impact: 'medium',
-    category: 'Competency',
-    href: '/competencies',
-    cta: 'Open competencies',
   },
   {
     id: 'r4',
