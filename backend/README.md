@@ -63,7 +63,7 @@ unexpected errors are handled by the centralized error handler in `src/app.js`.
 | GET | `/api/profile` | The current mock user's profile (identity, `level`/`nextLevel` as `"Level N"`, office). | `{ "data": { ...profile } }` |
 | GET | `/api/certifications` | All certifications (status, category, level, progress, `requiredFor: ["Level 1".."Level 3"]`, description). | `{ "data": [ ...certifications ] }` |
 | GET | `/api/career-levels` | Career roadmap Level 1 → Level 4, in progression order, each with `requirementMode` (`all`/`choose`/`holistic`), `requirementNote`, `chooseAtLeast` (when `choose`), `requirements`, and `focusAreas` (when `holistic`). | `{ "data": [ ...careerLevels ] }` |
-| GET | `/api/learning-plan` | The user's learning plan: development goals (+ milestones), study tasks, weekly plan, calendar events. | `{ "data": { "goals": [...], "tasks": [...], "weeklyPlan": [...], "calendar": [...] } }` |
+| GET | `/api/learning-plan` | The user's learning plan: a list of per-certification study checklists (`StudyChecklist[]`). | `{ "data": [ { "id", "certificationId", "certificationName", "items": [ { "id", "label", "done" } ] } ] }` |
 
 **Career levels (`/api/career-levels`).** The roadmap is `Level 1` (Foundation) → `Level 2`
 (Specialisation) → `Level 3` (Leadership track) → `Level 4` (Strategic impact), replacing the
@@ -74,6 +74,14 @@ Enterprise Architect) as of MIKK-28. `requirementMode` describes how to read `re
 certification list; see `focusAreas` instead — Level 4). `certifications[].requiredFor`
 references these same `"Level 1"`.."Level 3"` values (Level 4 has no certification
 requirements).
+
+**Learning plan (`/api/learning-plan`).** Returns `StudyChecklist[]` — one todo-list
+checklist per certification the user is actively studying for (`certificationId`,
+`certificationName`, `items: { id, label, done }[]`), matching the Learning Plan page as of
+MIKK-37. This replaced an earlier goals/tasks/weekly-plan/calendar contract that the frontend
+no longer uses (removed MIKK-46). Adding/toggling/deleting checklists and items is currently
+frontend-local state only (`useState`, no persistence) — this endpoint is read-only (`GET`);
+write endpoints are not yet implemented on the backend.
 
 **Data is temporary mock data.** Every response currently comes from static objects/arrays
 in `src/data/`, wired through a repository layer (see below) rather than a database. This

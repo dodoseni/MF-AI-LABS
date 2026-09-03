@@ -263,3 +263,77 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - Did not touch SQL, AI, Azure, or any frontend code, per the issue's explicit constraints.
 - Open questions / risks:
   - See the `/api/learning-plan` vs. current frontend model note above — recommend a follow-up issue rather than silently expanding this one's scope.
+
+## 2026-09-03 — MIKK-46: Redesign GET /api/learning-plan to match current StudyChecklist frontend model
+
+- Component: backend
+- Issue/ref: MIKK-46 (follows MIKK-37, which replaced the frontend Learning Plan model with `StudyChecklist[]`)
+- What was done:
+  - Replaced the backend's stale learning-plan contract (`goals` + `milestones`, generic `tasks`, `weeklyPlan`, `calendar`) — left over from the pre-MIKK-37 frontend model — with `StudyChecklist[]`, matching `levelup-frontend/src/types/index.ts` (`StudyChecklist`, `StudyChecklistItem`) and `levelup-frontend/src/data/mock.ts` (`studyChecklists`) field-for-field.
+  - `backend/src/data/learningPlan.js`: removed `goals`/`tasks`/`weeklyPlan`/`calendar`; now exports `studyChecklists`, mirroring the frontend's single `plan-az-305` seed checklist exactly (same ids, `certificationId: 'az-305'`, `certificationName`, and all 7 items with matching `id`/`label`/`done`).
+  - `backend/src/repositories/learningPlanRepository.js`: replaced `findGoals`/`findTasks`/`findWeeklyPlan`/`findCalendarEvents` with a single `findAll()` (async/Promise-based, same drop-in-Azure-SQL-later convention as the other repositories).
+  - `backend/src/services/learningPlanService.js`: `getLearningPlan()` now returns the repository's `StudyChecklist[]` directly (no more goals/tasks/weeklyPlan/calendar aggregation).
+  - `backend/src/controllers/learningPlanController.js`: unchanged — already wraps the service result as `{ "data": ... }`; now wraps an array instead of an object, per the target contract. Route unchanged: `GET /api/learning-plan`.
+  - `backend/tests/learningPlan.test.js`: rewritten — asserts `200` + `{ data: [...] }`, that every plan has `id`/`certificationId`/`certificationName`/`items`, every item has `id`/`label`/`done`, and that the old `goals`/`tasks`/`weeklyPlan`/`calendar` keys are absent from both the top-level payload and each plan.
+  - `backend/README.md`: updated the `/api/learning-plan` API table row and added a dedicated explanatory paragraph (mirrors the existing `/api/career-levels` paragraph pattern); removed all documentation of the obsolete goals/tasks/weeklyPlan/calendar shape; noted that checklist add/toggle/delete remains frontend-local (`useState`, no persistence) and this endpoint stays `GET`-only.
+- Decision/notes:
+  - Contract alignment verified by running the live endpoint and diffing byte-for-byte against `levelup-frontend/src/data/mock.ts`'s `studyChecklists`: ids, `certificationId`, `certificationName`, all 7 item ids/labels, and `done` booleans match exactly.
+  - Kept the route path unchanged (`GET /api/learning-plan`) per Product Owner decision — this is a contract redesign of an existing route, not a new endpoint.
+  - No write endpoints added (POST/PUT/PATCH/DELETE) — out of scope per the issue; the frontend's add/toggle/delete-item/delete-plan interactions remain component-local state only, consistent with the rest of the mock-data-only backend.
+  - Left `backend/src/data/certifications.js`/`careerLevels.js`/`competencies.js`/`profile.js` and their repositories/services/controllers untouched — this issue only touched the learning-plan slice.
+- Tests: `cd backend && npm ci && npm test` → 7 suites / 13 tests passing (all endpoints, including the rewritten learning-plan suite).
+- Open questions / risks:
+  - Frontend and backend still hold two independent copies of the study-checklist seed data (frontend `useState` initialized from its own mock array; backend serves its own mirrored mock array) since the frontend isn't wired to this endpoint yet — that wiring is still tracked under the existing Phase 2 plan (MIKK-14) and wasn't in this issue's scope.
+  - Future Azure SQL persistence: `findAll()` on `learningPlanRepository.js` is the only seam a real implementation needs to replace; a durable schema should key checklists by `(user_id, certification_id)` and items by `(checklist_id)` with a `done` boolean, so add/toggle/delete can eventually become real write endpoints without changing the response shape documented here.
+
+## 2026-09-03 — MIKK-47: QA validation of redesigned GET /api/learning-plan contract (MIKK-46, branch agent/back-end-developer/090294b133d2)
+
+- Component: QA
+- Issue/ref: MIKK-47 (validates MIKK-46, commit `22b0905`)
+- What was done:
+  - Checked out `agent/back-end-developer/090294b133d2` at commit `22b0905` (matches issue spec exactly). Ran `npm ci && npm test`: 7 suites / 13 tests passing.
+  - Verified `GET /api/learning-plan` → `200 { data: [...] }` with `StudyChecklist[]` shape (`id`/`certificationId`/`certificationName`/`items[].{id,label,done}`); confirmed old contract (`goals`/`tasks`/`weeklyPlan`/`calendar`) absent from both the top-level payload and every plan (manual curl + `learningPlan.test.js` assertions).
+  - Diffed the live response against `levelup-frontend/src/data/mock.ts` (`studyChecklists`) and `src/types/index.ts` (`StudyChecklist`/`StudyChecklistItem`) on current `origin/develop`: exact field-for-field match (plan id `plan-az-305`, `certificationId: az-305`, `certificationName`, all 7 item ids/labels/`done` values).
+  - Manually started the backend (`node src/server.js`) and curled every current route: `/api/health` → 200, `/api/profile` → 200, `/api/certifications` → 200, `/api/career-levels` → 200, `/api/learning-plan` → 200 (as above), unknown route → 404. **`GET /api/competencies` → 200 with data, not the expected 404** — see defect below.
+  - Confirmed architecture: routes → controllers → services → repositories → data preserved; `learningPlanRepository.js` exposes exactly one async method (`findAll()`); route/controller contain no inline mock data.
+  - Confirmed the commit itself (`git show --stat 22b0905`) touches only `backend/README.md`, `backend/src/data/learningPlan.js`, `backend/src/repositories/learningPlanRepository.js`, `backend/src/services/learningPlanService.js`, `backend/tests/learningPlan.test.js`, `docs/CHANGELOG.md` — no `levelup-frontend/`, `.github/workflows/`, SQL/database, Azure config, AI/Foundry, auth, or other API-contract changes.
+  - Merge-conflict assessment (`git merge-tree` against current `origin/develop`, `f40678a`): **real conflicts found**. The branch was cut before MIKK-42 (`3ca76d3`, already merged to `develop` via PR #16) landed, which removed the backend `/api/competencies` slice entirely and left `/api/learning-plan`'s old goals/tasks/weeklyPlan/calendar data in place pending exactly this redesign. Merging as-is conflicts on `backend/src/data/learningPlan.js` (branch's `StudyChecklist[]` vs. develop's still-old goals/tasks/weeklyPlan/calendar) and on `docs/CHANGELOG.md` (both branches appended entries in the same location). The `/api/competencies` file removals apply cleanly (branch never touched those files), so `/api/competencies` will correctly disappear once merged/rebased — it is only present with this branch checked out standalone.
+- Decision/notes: the MIKK-46 implementation itself is correct and fully matches the target contract; the only issue is branch staleness relative to `develop`, which surfaces as (a) two real, resolvable merge conflicts and (b) a stale `/api/competencies` 200 that will self-resolve once rebased.
+- Open questions / risks:
+  - Recommend rebasing/merging `agent/back-end-developer/090294b133d2` onto current `origin/develop` (picking the branch's `StudyChecklist[]` for `learningPlan.js` and keeping both `docs/CHANGELOG.md` entries) before merge, then re-running `npm test` and re-curling `/api/competencies` to confirm 404 post-rebase.
+
+## 2026-09-03 — MIKK-48: Rebase Learning Plan redesign branch (agent/back-end-developer/090294b133d2) onto current develop
+
+- Component: backend
+- Issue/ref: MIKK-48 (resolves the staleness Test-Agent flagged in MIKK-47)
+- What was done:
+  - Rebased `agent/back-end-developer/090294b133d2` (MIKK-46 `22b0905` + MIKK-47 `551b50e`) onto current `origin/develop` (`f40678a`, which already contains MIKK-42's full `/api/competencies` removal).
+  - Resolved the `backend/src/data/learningPlan.js` conflict by keeping the branch's `StudyChecklist[]` model as-is (`plan-az-305` + 7 items) and discarding develop's now-superseded `goals`/`tasks`/`weeklyPlan`/`calendar` mock data entirely — none of MIKK-42's `g2`/`e6`/`e9`/`e13` removals were relevant since that whole model is gone.
+  - Resolved the `docs/CHANGELOG.md` conflict by keeping both the MIKK-42 (develop) and MIKK-46/47 (branch) entries, in date order, no duplication.
+  - Found and removed one additional problem the git auto-merge introduced without flagging a conflict: `backend/tests/learningPlan.test.js` had auto-merged in develop's MIKK-42 regression test (`does not include the removed Competency goal...`, asserting on `data.goals`/`data.calendar`) alongside the branch's rewritten StudyChecklist assertions. That test is for a model that no longer exists post-MIKK-46, so it was deleted (amended into the MIKK-46 commit via `git rebase -i --edit`) rather than left to fail.
+  - Verified final backend API surface: `GET /api/health`, `/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan` all → 200; `GET /api/competencies` → 404 (route/controller/service/repository/data/test all absent, confirmed via `find backend -iname "*competenc*"` returning nothing and `app.js` having no registration).
+  - Ran `cd backend && npm ci && npm test`: 6 suites / 12 tests passing.
+  - Confirmed `GET /api/learning-plan` response is byte-for-byte identical to `levelup-frontend/src/data/mock.ts`'s `studyChecklists` and matches `StudyChecklist`/`StudyChecklistItem` in `levelup-frontend/src/types/index.ts`.
+  - Confirmed no changes outside `backend/` (learning-plan slice only) and `docs/CHANGELOG.md`: no diff vs. `origin/develop` in `levelup-frontend/`, `.github/workflows/`, SQL/database, Azure config, AI/Foundry, or auth.
+  - `git merge-tree --write-tree origin/develop HEAD` succeeds cleanly (no conflicts) — branch now merges into `develop` with zero manual intervention.
+  - Force-pushed the rebased branch to `origin/agent/back-end-developer/090294b133d2` (history rewritten by the rebase; `--force-with-lease`).
+- Decision/notes:
+  - Did not restore any Competency backend code or docs — MIKK-42's removal is fully preserved.
+  - Did not restore `goals`/`tasks`/`weeklyPlan`/`calendar` — the StudyChecklist[] contract from MIKK-46 is the sole surviving Learning Plan model, per this issue's explicit instruction not to redesign again.
+- Tests: `cd backend && npm ci && npm test` → 6 suites / 12 tests passing. Manual curl of all 6 routes above confirms the contract live.
+- Open questions / risks: None. Branch is rebased on latest `develop`, conflict-free to merge, tests green, endpoint surface verified both automatically and manually.
+
+## 2026-09-03 — MIKK-49: Final post-rebase QA validation of Learning Plan backend redesign
+
+- Component: QA
+- Issue/ref: MIKK-49 (independent verification of MIKK-48's rebase)
+- What was done:
+  - Independently re-ran `cd backend && npm ci && npm test` on `agent/back-end-developer/090294b133d2` @ `67867ad`: 6 suites / 12 tests passing.
+  - Started the server (`node src/server.js`) and curled all 6 endpoints: `/api/health`, `/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan` → 200; `/api/competencies` → 404.
+  - Confirmed `GET /api/learning-plan` response body matches the required `StudyChecklist[]` shape exactly, and is identical to `levelup-frontend/src/data/mock.ts`'s `studyChecklists` and the `StudyChecklist`/`StudyChecklistItem` interfaces in `levelup-frontend/src/types/index.ts`.
+  - Grepped `backend/src` for `goals`/`tasks`/`weeklyPlan`/`calendar` fields: none found (only historical comments noting their removal).
+  - Grepped for any `competenc*` route/controller/service/repository/data/test files: none found; `app.js` has no competencies route registration.
+  - Verified mergeability: `merge-base HEAD origin/develop` shows `origin/develop` (`f40678a`) is an ancestor of the branch, and a scratch `git merge --no-commit --no-ff origin/agent/back-end-developer/090294b133d2` onto fresh `origin/develop` completed cleanly (exit 0, no conflicts). (Note: a stale local branch cache named identically but pointing at an older commit, `22b0905`, existed in this checkout's git object store and produced a false-positive conflict on first attempt — the actual remote ref `origin/agent/back-end-developer/090294b133d2` is at `67867ad` and merges clean.)
+  - Confirmed `git diff origin/develop..HEAD --stat` touches only `backend/README.md`, `backend/src/data/learningPlan.js`, `backend/src/repositories/learningPlanRepository.js`, `backend/src/services/learningPlanService.js`, `backend/tests/learningPlan.test.js`, and `docs/CHANGELOG.md` — no `levelup-frontend/`, `.github/workflows/`, SQL, Azure, AI/Foundry, or auth changes.
+- Decision/notes: All MIKK-49 acceptance checks pass; findings corroborate MIKK-48's self-reported verification.
+- Open questions / risks: None blocking. Result: PASS, recommendation MERGE.

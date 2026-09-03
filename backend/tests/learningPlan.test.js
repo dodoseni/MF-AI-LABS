@@ -5,38 +5,53 @@ const createApp = require('../src/app');
 describe('GET /api/learning-plan', () => {
   const app = createApp();
 
-  it('returns HTTP 200 with goals, tasks, weeklyPlan and calendar', async () => {
+  it('returns HTTP 200 with a list of study checklists', async () => {
     const res = await request(app).get('/api/learning-plan');
 
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('data');
-
-    const { data } = res.body;
-    expect(Array.isArray(data.goals)).toBe(true);
-    expect(data.goals.length).toBeGreaterThan(0);
-    expect(Array.isArray(data.goals[0].milestones)).toBe(true);
-
-    expect(Array.isArray(data.tasks)).toBe(true);
-    expect(data.tasks.length).toBeGreaterThan(0);
-
-    expect(Array.isArray(data.weeklyPlan)).toBe(true);
-    expect(data.weeklyPlan.length).toBeGreaterThan(0);
-
-    expect(Array.isArray(data.calendar)).toBe(true);
-    expect(data.calendar.length).toBeGreaterThan(0);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBeGreaterThan(0);
   });
 
-  it('does not include the removed Competency goal or its milestone events', async () => {
+  it('every checklist has id, certificationId, certificationName and items', async () => {
     const res = await request(app).get('/api/learning-plan');
-    const { data } = res.body;
 
-    // g2 ("Strengthen Sales competency to level 4") was removed after the
-    // Competency feature was deleted from the frontend (MIKK-36/MIKK-42).
-    expect(data.goals.some((g) => g.id === 'g2')).toBe(false);
+    for (const plan of res.body.data) {
+      expect(typeof plan.id).toBe('string');
+      expect(typeof plan.certificationId).toBe('string');
+      expect(typeof plan.certificationName).toBe('string');
+      expect(Array.isArray(plan.items)).toBe(true);
+    }
+  });
 
-    // e6, e9, e13 were the calendar milestones that only existed to support
-    // the removed g2 goal.
-    const calendarIds = data.calendar.map((e) => e.id);
-    expect(calendarIds).not.toEqual(expect.arrayContaining(['e6', 'e9', 'e13']));
+  it('every checklist item has id, label and done', async () => {
+    const res = await request(app).get('/api/learning-plan');
+
+    for (const plan of res.body.data) {
+      for (const item of plan.items) {
+        expect(typeof item.id).toBe('string');
+        expect(typeof item.label).toBe('string');
+        expect(typeof item.done).toBe('boolean');
+      }
+    }
+  });
+
+  it('does not include the old goals/tasks/weeklyPlan/calendar contract', () => {
+    return request(app)
+      .get('/api/learning-plan')
+      .then((res) => {
+        expect(res.body.data).not.toHaveProperty('goals');
+        expect(res.body.data).not.toHaveProperty('tasks');
+        expect(res.body.data).not.toHaveProperty('weeklyPlan');
+        expect(res.body.data).not.toHaveProperty('calendar');
+
+        for (const plan of res.body.data) {
+          expect(plan).not.toHaveProperty('goals');
+          expect(plan).not.toHaveProperty('tasks');
+          expect(plan).not.toHaveProperty('weeklyPlan');
+          expect(plan).not.toHaveProperty('calendar');
+        }
+      });
   });
 });
