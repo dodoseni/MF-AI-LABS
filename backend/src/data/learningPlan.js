@@ -21,19 +21,6 @@ const goals = [
     ],
   },
   {
-    id: 'g2',
-    title: 'Strengthen Sales competency to level 4',
-    category: 'Competency',
-    status: 'active',
-    progress: 40,
-    dueDate: '2026-12-15',
-    milestones: [
-      { id: 'm1', label: 'Complete sales training workshop', date: '2026-09-30', done: true },
-      { id: 'm2', label: 'Co-lead one proposal submission', date: '2026-11-01', done: false },
-      { id: 'm3', label: 'Present at internal sales forum', date: '2026-12-15', done: false },
-    ],
-  },
-  {
     id: 'g3',
     title: 'Complete DevOps practices deep-dive',
     category: 'Learning',
@@ -115,14 +102,11 @@ const calendar = [
   { id: 'e3', date: '2026-09-11', title: 'Hands-on practice lab', type: 'study' },
   { id: 'e4', date: '2026-09-13', title: 'Weekly quiz + recap', type: 'study' },
   { id: 'e5', date: '2026-09-15', title: 'Complete AZ-305 Design module', type: 'milestone' },
-  { id: 'e6', date: '2026-09-30', title: 'Sales training workshop', type: 'study' },
   { id: 'e7', date: '2026-10-15', title: 'AZ-305 practice exam — target 70%+', type: 'practice' },
   { id: 'e8', date: '2026-10-15', title: 'Finish Azure DevOps course', type: 'study' },
-  { id: 'e9', date: '2026-11-01', title: 'Co-lead one proposal submission', type: 'milestone' },
   { id: 'e10', date: '2026-11-15', title: 'Implement CI/CD on a demo project', type: 'study' },
   { id: 'e11', date: '2026-11-30', title: 'AZ-305 certification exam', type: 'exam' },
   { id: 'e12', date: '2026-12-01', title: 'DevOps practices deep-dive due', type: 'milestone' },
-  { id: 'e13', date: '2026-12-15', title: 'Present at internal sales forum', type: 'milestone' },
 ];
 
 module.exports = { goals, tasks, weeklyPlan, calendar };

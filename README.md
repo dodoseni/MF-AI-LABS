@@ -7,7 +7,7 @@ LevelUp brings together certifications, learning resources, career requirements,
 ## Repository layout
 
 - `levelup-frontend/` — React 19 + TypeScript + Vite app: Dashboard, Certifications, Competency Development, Career Path, Learning Plan, AI Assistant, and Profile. Fully functional on mock data (`src/data/mock.ts`); no backend wiring yet.
-- `backend/` — Express.js API (Node >= 20). `GET /api/health` plus read-only mock-data-backed contracts (`/api/profile`, `/api/certifications`, `/api/competencies`, `/api/career-levels`, `/api/learning-plan`); no database, auth, or AI wiring yet. See `backend/README.md`.
+- `backend/` — Express.js API (Node >= 20). `GET /api/health` plus read-only mock-data-backed contracts (`/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan`); no database, auth, or AI wiring yet. See `backend/README.md`.
 - `docs/CHANGELOG.md` — shared, version-controlled record of completed tasks. Append an entry per task.
 
 
