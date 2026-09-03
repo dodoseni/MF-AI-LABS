@@ -501,3 +501,15 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - **`mikelrev` (single "k") also exists on the same logical server** as an empty, near-unused database (only the Azure-managed `database_firewall_rules`) — likely an earlier typo or leftover from before the naming was settled. Not touched or deleted by this issue (out of scope); flagged for whoever owns the Azure SQL Server resource to clean up or confirm intentional.
   - Deployment target (VM vs. Azure App Service `levelup-api-dev`) remains open — this issue only validates the self-hosted-VM path.
   - `prisma migrate deploy` auto-creating the database on first run is convenient here but is a one-time event tied to this specific empty-database scenario — future migrations should behave normally (`migrate deploy` never diffs schema, only applies pending migration files).
+
+## 2026-09-03 — MIKK-60: Sync root README.md with the real Database/backend status
+
+- Component: docs
+- Issue/ref: MIKK-60. Doc-only fix; no code touched.
+- What was done:
+  1. Repository-layout bullets: `levelup-frontend/` now states it's wired to the backend API (profile, certifications, career-levels, learning-plan) since MIKK-52, with a mock-data fallback on API errors — replacing the stale "no backend wiring yet" line. `backend/` now states Prisma + Azure SQL are live (MIKK-51/53/56) for the `DatabaseSmokeTest` table only, while `Certification`/`CareerLevel`/`Profile`/`learning-plan` remain mock-data-backed; auth/AI correctly remain "not started".
+  2. Architecture table: `Database` row corrected from "Not started" to "live for `DatabaseSmokeTest` only, via Prisma + Key Vault + Managed Identity" — explicitly not a full migration of product data. `Backend` row corrected from "Azure App Service" to the confirmed real runtime, a self-hosted Azure VM with a system-assigned Managed Identity (per `backend/README.md`'s MIKK-56 notes); Azure App Service (`levelup-api-dev`) is noted as an unconfirmed, possibly-additional target rather than asserted or dropped.
+  3. Getting-started → Backend subsection: replaced "no database yet" with an accurate split — `GET /api/db-test` is real/live, the four product endpoints are still mock-data-backed.
+- Decision/notes: Cross-checked every claim against `backend/README.md`'s own "Database (Prisma + Azure SQL)" and "Azure App Service deployment notes" sections (source of truth from MIKK-51/53/56) plus `git log`/`git show` for MIKK-52's actual diff, rather than guessing. `backend/README.md` itself was not modified — it was already accurate; this issue only touched the root `README.md`.
+- Tests: doc-only change; `cd backend && npm test` not affected (not re-run, no backend files touched). Confirmed via `git status`/diff that only `README.md` and this `docs/CHANGELOG.md` entry changed.
+- Open questions / risks: none new — the existing open question (whether Azure App Service `levelup-api-dev` is also a real deployment target alongside the VM) is carried over from `backend/README.md`/MIKK-56, not resolved here.

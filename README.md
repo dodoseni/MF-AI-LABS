@@ -6,18 +6,18 @@ LevelUp brings together certifications, learning resources, career requirements,
 
 ## Repository layout
 
-- `levelup-frontend/` — React 19 + TypeScript + Vite app: Dashboard, Certifications, Competency Development, Career Path, Learning Plan, AI Assistant, and Profile. Fully functional on mock data (`src/data/mock.ts`); no backend wiring yet.
-- `backend/` — Express.js API (Node >= 20). `GET /api/health` plus read-only mock-data-backed contracts (`/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan`); no database, auth, or AI wiring yet. See `backend/README.md`.
+- `levelup-frontend/` — React 19 + TypeScript + Vite app: Dashboard, Certifications, Competency Development, Career Path, Learning Plan, AI Assistant, and Profile. Wired to the backend API (profile, certifications, career-levels, learning-plan) since MIKK-52; falls back to mock data with an on-screen notice if the API is unreachable.
+- `backend/` — Express.js API (Node >= 20). `GET /api/health` plus `/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan`. Prisma + Azure SQL are live (MIKK-51/53/56) for a `DatabaseSmokeTest` verification table only — `Certification`, `CareerLevel`, `Profile`, and `learning-plan` are still read from local mock data (`src/data/`). Auth and AI wiring are still not started. See `backend/README.md`.
 - `docs/CHANGELOG.md` — shared, version-controlled record of completed tasks. Append an entry per task.
 
 
-## Architecture (target — not yet built)
+## Architecture (target — partially built)
 
 | Component | Azure service | Status |
 |---|---|---|
-| Frontend | Azure Static Web Apps | Built (mock data) |
-| Backend | Azure App Service | Read-only API contracts on mock data |
-| Database | Azure SQL Database | Not started |
+| Frontend | Azure Static Web Apps | Built, wired to the backend API (MIKK-52) |
+| Backend | Self-hosted Azure VM (system-assigned Managed Identity) | Read-only API contracts, live and validated end-to-end (MIKK-56). Azure App Service (`levelup-api-dev`) may also exist but is unconfirmed as a real target — see `backend/README.md`. |
+| Database | Azure SQL Database (via Prisma) | Live for the `DatabaseSmokeTest` verification table only (MIKK-51/53/56), resolved via Key Vault + the VM's Managed Identity. `Certification`, `CareerLevel`, `Profile`, and `learning-plan` are still mock-data-backed — not yet migrated. |
 | Authentication | Microsoft Entra ID | Not started |
 | AI assistant | Azure OpenAI | Not started |
 | Document storage | Azure Blob Storage | Not started |
@@ -61,8 +61,10 @@ npm start
 ```
 
 Listens on `PORT` (default `4000`). See `backend/README.md` for the full endpoint list,
-tests, and Azure App Service deployment notes. Endpoints are read-only and backed by
-local mock data (`backend/src/data/`) — no database yet.
+tests, and deployment notes. Endpoints are read-only. Prisma + Azure SQL are live for a
+`DatabaseSmokeTest` verification table (`GET /api/db-test`); the product endpoints
+(`/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan`) are
+still backed by local mock data (`backend/src/data/`).
 
 ## Conventions
 
