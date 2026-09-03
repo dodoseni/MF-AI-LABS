@@ -263,3 +263,25 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - Did not touch SQL, AI, Azure, or any frontend code, per the issue's explicit constraints.
 - Open questions / risks:
   - See the `/api/learning-plan` vs. current frontend model note above — recommend a follow-up issue rather than silently expanding this one's scope.
+
+## 2026-09-03 — MIKK-46: Redesign GET /api/learning-plan to match current StudyChecklist frontend model
+
+- Component: backend
+- Issue/ref: MIKK-46 (follows MIKK-37, which replaced the frontend Learning Plan model with `StudyChecklist[]`)
+- What was done:
+  - Replaced the backend's stale learning-plan contract (`goals` + `milestones`, generic `tasks`, `weeklyPlan`, `calendar`) — left over from the pre-MIKK-37 frontend model — with `StudyChecklist[]`, matching `levelup-frontend/src/types/index.ts` (`StudyChecklist`, `StudyChecklistItem`) and `levelup-frontend/src/data/mock.ts` (`studyChecklists`) field-for-field.
+  - `backend/src/data/learningPlan.js`: removed `goals`/`tasks`/`weeklyPlan`/`calendar`; now exports `studyChecklists`, mirroring the frontend's single `plan-az-305` seed checklist exactly (same ids, `certificationId: 'az-305'`, `certificationName`, and all 7 items with matching `id`/`label`/`done`).
+  - `backend/src/repositories/learningPlanRepository.js`: replaced `findGoals`/`findTasks`/`findWeeklyPlan`/`findCalendarEvents` with a single `findAll()` (async/Promise-based, same drop-in-Azure-SQL-later convention as the other repositories).
+  - `backend/src/services/learningPlanService.js`: `getLearningPlan()` now returns the repository's `StudyChecklist[]` directly (no more goals/tasks/weeklyPlan/calendar aggregation).
+  - `backend/src/controllers/learningPlanController.js`: unchanged — already wraps the service result as `{ "data": ... }`; now wraps an array instead of an object, per the target contract. Route unchanged: `GET /api/learning-plan`.
+  - `backend/tests/learningPlan.test.js`: rewritten — asserts `200` + `{ data: [...] }`, that every plan has `id`/`certificationId`/`certificationName`/`items`, every item has `id`/`label`/`done`, and that the old `goals`/`tasks`/`weeklyPlan`/`calendar` keys are absent from both the top-level payload and each plan.
+  - `backend/README.md`: updated the `/api/learning-plan` API table row and added a dedicated explanatory paragraph (mirrors the existing `/api/career-levels` paragraph pattern); removed all documentation of the obsolete goals/tasks/weeklyPlan/calendar shape; noted that checklist add/toggle/delete remains frontend-local (`useState`, no persistence) and this endpoint stays `GET`-only.
+- Decision/notes:
+  - Contract alignment verified by running the live endpoint and diffing byte-for-byte against `levelup-frontend/src/data/mock.ts`'s `studyChecklists`: ids, `certificationId`, `certificationName`, all 7 item ids/labels, and `done` booleans match exactly.
+  - Kept the route path unchanged (`GET /api/learning-plan`) per Product Owner decision — this is a contract redesign of an existing route, not a new endpoint.
+  - No write endpoints added (POST/PUT/PATCH/DELETE) — out of scope per the issue; the frontend's add/toggle/delete-item/delete-plan interactions remain component-local state only, consistent with the rest of the mock-data-only backend.
+  - Left `backend/src/data/certifications.js`/`careerLevels.js`/`competencies.js`/`profile.js` and their repositories/services/controllers untouched — this issue only touched the learning-plan slice.
+- Tests: `cd backend && npm ci && npm test` → 7 suites / 13 tests passing (all endpoints, including the rewritten learning-plan suite).
+- Open questions / risks:
+  - Frontend and backend still hold two independent copies of the study-checklist seed data (frontend `useState` initialized from its own mock array; backend serves its own mirrored mock array) since the frontend isn't wired to this endpoint yet — that wiring is still tracked under the existing Phase 2 plan (MIKK-14) and wasn't in this issue's scope.
+  - Future Azure SQL persistence: `findAll()` on `learningPlanRepository.js` is the only seam a real implementation needs to replace; a durable schema should key checklists by `(user_id, certification_id)` and items by `(checklist_id)` with a `done` boolean, so add/toggle/delete can eventually become real write endpoints without changing the response shape documented here.
