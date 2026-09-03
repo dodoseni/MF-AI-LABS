@@ -11,11 +11,28 @@ export interface Certification {
   status: CertificationStatus
   category: string
   level: 'Associate' | 'Professional' | 'Specialist' | 'Expert'
-  earnedDate?: string
-  progress?: number
+  /** The backend always sends this field, using `null` instead of omitting it when unearned. */
+  earnedDate?: string | null
+  /** The backend always sends this field, using `null` instead of omitting it when not tracked. */
+  progress?: number | null
   requiredFor: string[]
   description: string
   documents?: string[]
+}
+
+/** The current user's profile — matches the `GET /api/profile` response shape. */
+export interface Profile {
+  id: string
+  name: string
+  email: string
+  role: string
+  /** Display name of the user's current career level, e.g. "Level 3". */
+  level: string
+  /** Display name of the next career level, e.g. "Level 4". */
+  nextLevel: string
+  office: string
+  memberSince: string
+  avatarInitials: string
 }
 
 /** How a level's certification requirements should be interpreted. */

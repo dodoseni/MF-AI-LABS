@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import {
+  ApiNotice,
   Badge,
   Button,
   Icon,
@@ -32,8 +33,14 @@ const categories = [
 
 export default function Certifications() {
   const { t } = useLanguage()
-  const { certifications, addCertification, deleteCertification, updateCertificationStatus } =
-    useCertifications()
+  const {
+    certifications,
+    certificationsStatus,
+    refetchCertifications,
+    addCertification,
+    deleteCertification,
+    updateCertificationStatus,
+  } = useCertifications()
   const [filter, setFilter] = useState<CertificationStatus | 'all'>('all')
   const [category, setCategory] = useState('all')
   const [search, setSearch] = useState('')
@@ -97,6 +104,16 @@ export default function Certifications() {
           </Button>
         }
       />
+
+      {(certificationsStatus === 'loading' || certificationsStatus === 'error') && (
+        <ApiNotice
+          status={certificationsStatus}
+          loadingText={t('common.loadingCertifications')}
+          errorText={t('common.errorCertifications')}
+          onRetry={certificationsStatus === 'error' ? refetchCertifications : undefined}
+          retryLabel={t('common.retry')}
+        />
+      )}
 
       <div className="grid grid-4 mb-16">
         <StatCard icon="cert" label={t('certifications.stat.completed')} value={completed} detail={t('certifications.stat.completedDetail', { total: certifications.length })} tone="success" />

@@ -12,6 +12,7 @@ import Profile from './pages/Profile'
 import { useLanguage } from './i18n/LanguageContext'
 import type { TranslationKey } from './i18n/translations'
 import { CertificationsProvider } from './context/CertificationsContext'
+import { ProfileProvider } from './context/ProfileContext'
 
 const pageTitleKeys: Record<string, TranslationKey> = {
   '/': 'title.dashboard',
@@ -56,8 +57,10 @@ function Shell() {
 
 export default function App() {
   return (
-    <CertificationsProvider>
-      <Shell />
-    </CertificationsProvider>
+    <ProfileProvider>
+      <CertificationsProvider>
+        <Shell />
+      </CertificationsProvider>
+    </ProfileProvider>
   )
 }

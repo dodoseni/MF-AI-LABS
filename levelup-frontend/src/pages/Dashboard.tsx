@@ -1,4 +1,5 @@
 import {
+  ApiNotice,
   Button,
   Card,
   CardHead,
@@ -8,13 +9,14 @@ import {
   ProgressBar,
   StatCard,
 } from '../components/ui'
-import { currentUser } from '../data/mock'
 import { useCertifications } from '../context/CertificationsContext'
+import { useProfile } from '../context/ProfileContext'
 import { useLanguage } from '../i18n/LanguageContext'
 
 export default function Dashboard() {
   const { t } = useLanguage()
-  const { careerPath } = useCertifications()
+  const { profile } = useProfile()
+  const { careerPath, careerLevelsStatus, refetchCareerLevels } = useCertifications()
   const currentLevel = careerPath.find((l) => l.status === 'current')!
   const currentIndex = careerPath.findIndex((l) => l.id === currentLevel.id)
   const nextLevel = careerPath[currentIndex + 1]
@@ -25,7 +27,7 @@ export default function Dashboard() {
   return (
     <div>
       <PageHead
-        title={t('dashboard.greeting', { name: currentUser.name.split(' ')[0] })}
+        title={t('dashboard.greeting', { name: profile.name.split(' ')[0] })}
         subtitle={t('dashboard.subtitle')}
         actions={
           <Button variant="secondary">
@@ -34,6 +36,16 @@ export default function Dashboard() {
           </Button>
         }
       />
+
+      {(careerLevelsStatus === 'loading' || careerLevelsStatus === 'error') && (
+        <ApiNotice
+          status={careerLevelsStatus}
+          loadingText={t('common.loadingCareerLevels')}
+          errorText={t('common.errorCareerLevels')}
+          onRetry={careerLevelsStatus === 'error' ? refetchCareerLevels : undefined}
+          retryLabel={t('common.retry')}
+        />
+      )}
 
       {/* Hero / current level */}
       <div className="mb-16">

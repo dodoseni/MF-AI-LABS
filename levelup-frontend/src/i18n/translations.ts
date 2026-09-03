@@ -48,6 +48,18 @@ const en = {
   'common.status.active': 'Active',
   'common.status.upcoming': 'Upcoming',
   'common.status.current': 'Current',
+  'common.retry': 'Retry',
+  'common.loadingProfile': 'Loading your profile…',
+  'common.errorProfile': "Couldn't load your profile from the server — showing the last known data.",
+  'common.loadingCertifications': 'Loading certifications…',
+  'common.errorCertifications':
+    "Couldn't load certifications from the server — showing local data.",
+  'common.loadingCareerLevels': 'Loading career levels…',
+  'common.errorCareerLevels':
+    "Couldn't load career levels from the server — showing local data.",
+  'common.loadingLearningPlan': 'Loading your learning plan…',
+  'common.errorLearningPlan':
+    "Couldn't load the learning plan from the server — showing local data.",
 
   'dashboard.greeting': 'Good to see you, {name}',
   'dashboard.subtitle':
@@ -196,6 +208,18 @@ const no: typeof en = {
   'common.status.active': 'Aktiv',
   'common.status.upcoming': 'Kommende',
   'common.status.current': 'Nåværende',
+  'common.retry': 'Prøv igjen',
+  'common.loadingProfile': 'Laster profilen din…',
+  'common.errorProfile': 'Kunne ikke laste profilen fra serveren — viser sist kjente data.',
+  'common.loadingCertifications': 'Laster sertifiseringer…',
+  'common.errorCertifications':
+    'Kunne ikke laste sertifiseringer fra serveren — viser lokale data.',
+  'common.loadingCareerLevels': 'Laster karrierenivåer…',
+  'common.errorCareerLevels':
+    'Kunne ikke laste karrierenivåer fra serveren — viser lokale data.',
+  'common.loadingLearningPlan': 'Laster læringsplanen din…',
+  'common.errorLearningPlan':
+    'Kunne ikke laste læringsplanen fra serveren — viser lokale data.',
 
   'dashboard.greeting': 'Hyggelig å se deg, {name}',
   'dashboard.subtitle':
