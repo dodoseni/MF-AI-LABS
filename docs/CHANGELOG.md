@@ -322,3 +322,18 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - Did not restore `goals`/`tasks`/`weeklyPlan`/`calendar` — the StudyChecklist[] contract from MIKK-46 is the sole surviving Learning Plan model, per this issue's explicit instruction not to redesign again.
 - Tests: `cd backend && npm ci && npm test` → 6 suites / 12 tests passing. Manual curl of all 6 routes above confirms the contract live.
 - Open questions / risks: None. Branch is rebased on latest `develop`, conflict-free to merge, tests green, endpoint surface verified both automatically and manually.
+
+## 2026-09-03 — MIKK-49: Final post-rebase QA validation of Learning Plan backend redesign
+
+- Component: QA
+- Issue/ref: MIKK-49 (independent verification of MIKK-48's rebase)
+- What was done:
+  - Independently re-ran `cd backend && npm ci && npm test` on `agent/back-end-developer/090294b133d2` @ `67867ad`: 6 suites / 12 tests passing.
+  - Started the server (`node src/server.js`) and curled all 6 endpoints: `/api/health`, `/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan` → 200; `/api/competencies` → 404.
+  - Confirmed `GET /api/learning-plan` response body matches the required `StudyChecklist[]` shape exactly, and is identical to `levelup-frontend/src/data/mock.ts`'s `studyChecklists` and the `StudyChecklist`/`StudyChecklistItem` interfaces in `levelup-frontend/src/types/index.ts`.
+  - Grepped `backend/src` for `goals`/`tasks`/`weeklyPlan`/`calendar` fields: none found (only historical comments noting their removal).
+  - Grepped for any `competenc*` route/controller/service/repository/data/test files: none found; `app.js` has no competencies route registration.
+  - Verified mergeability: `merge-base HEAD origin/develop` shows `origin/develop` (`f40678a`) is an ancestor of the branch, and a scratch `git merge --no-commit --no-ff origin/agent/back-end-developer/090294b133d2` onto fresh `origin/develop` completed cleanly (exit 0, no conflicts). (Note: a stale local branch cache named identically but pointing at an older commit, `22b0905`, existed in this checkout's git object store and produced a false-positive conflict on first attempt — the actual remote ref `origin/agent/back-end-developer/090294b133d2` is at `67867ad` and merges clean.)
+  - Confirmed `git diff origin/develop..HEAD --stat` touches only `backend/README.md`, `backend/src/data/learningPlan.js`, `backend/src/repositories/learningPlanRepository.js`, `backend/src/services/learningPlanService.js`, `backend/tests/learningPlan.test.js`, and `docs/CHANGELOG.md` — no `levelup-frontend/`, `.github/workflows/`, SQL, Azure, AI/Foundry, or auth changes.
+- Decision/notes: All MIKK-49 acceptance checks pass; findings corroborate MIKK-48's self-reported verification.
+- Open questions / risks: None blocking. Result: PASS, recommendation MERGE.
