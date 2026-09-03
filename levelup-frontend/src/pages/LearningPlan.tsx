@@ -1,24 +1,53 @@
-import { useState } from 'react'
-import { Button, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
-import { studyChecklists as initialChecklists } from '../data/mock'
+import { useEffect, useRef, useState } from 'react'
+import { ApiNotice, Button, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
+import { studyChecklists as checklistsFallback } from '../data/mock'
+import { getLearningPlan } from '../api/learningPlan'
 import { useCertifications } from '../context/CertificationsContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import type { StudyChecklist } from '../types'
 
+type ResourceStatus = 'loading' | 'success' | 'error'
+
 export default function LearningPlan() {
   const { t } = useLanguage()
   const { certifications } = useCertifications()
-  const [checklists, setChecklists] = useState<StudyChecklist[]>(initialChecklists)
+  // Seeded from GET /api/learning-plan; falls back to local mock data while loading or on
+  // error. There are no backend write endpoints yet, so every mutation below stays local —
+  // `editedRef` also protects against a slow/late API response overwriting local edits.
+  const [checklists, setChecklists] = useState<StudyChecklist[]>(checklistsFallback)
+  const [status, setStatus] = useState<ResourceStatus>('loading')
+  const [reloadKey, setReloadKey] = useState(0)
+  const editedRef = useRef(false)
+
   const [newItemText, setNewItemText] = useState<Record<string, string>>({})
   const [showAddPlan, setShowAddPlan] = useState(false)
   const [newPlanCertId, setNewPlanCertId] = useState('')
   const [deletePlanId, setDeletePlanId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    setStatus('loading')
+
+    getLearningPlan(controller.signal)
+      .then((data) => {
+        if (!editedRef.current) setChecklists(data)
+        setStatus('success')
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return
+        console.error('Failed to load the learning plan from the API; showing fallback data.', err)
+        setStatus('error')
+      })
+
+    return () => controller.abort()
+  }, [reloadKey])
 
   const availableCerts = certifications.filter(
     (c) => !checklists.some((p) => p.certificationId === c.id),
   )
 
   function toggleItem(planId: string, itemId: string) {
+    editedRef.current = true
     setChecklists((prev) =>
       prev.map((p) =>
         p.id === planId
@@ -29,6 +58,7 @@ export default function LearningPlan() {
   }
 
   function deleteItem(planId: string, itemId: string) {
+    editedRef.current = true
     setChecklists((prev) =>
       prev.map((p) => (p.id === planId ? { ...p, items: p.items.filter((i) => i.id !== itemId) } : p)),
     )
@@ -37,6 +67,7 @@ export default function LearningPlan() {
   function addItem(planId: string) {
     const text = (newItemText[planId] ?? '').trim()
     if (!text) return
+    editedRef.current = true
     setChecklists((prev) =>
       prev.map((p) =>
         p.id === planId
@@ -56,12 +87,14 @@ export default function LearningPlan() {
       certificationName: cert.name,
       items: [],
     }
+    editedRef.current = true
     setChecklists((prev) => [plan, ...prev])
     setNewPlanCertId('')
     setShowAddPlan(false)
   }
 
   function deletePlan(id: string) {
+    editedRef.current = true
     setChecklists((prev) => prev.filter((p) => p.id !== id))
     setDeletePlanId(null)
   }
@@ -80,6 +113,16 @@ export default function LearningPlan() {
           </Button>
         }
       />
+
+      {(status === 'loading' || status === 'error') && (
+        <ApiNotice
+          status={status}
+          loadingText={t('common.loadingLearningPlan')}
+          errorText={t('common.errorLearningPlan')}
+          onRetry={status === 'error' ? () => setReloadKey((k) => k + 1) : undefined}
+          retryLabel={t('common.retry')}
+        />
+      )}
 
       {checklists.length === 0 ? (
         <div className="card card-pad center" style={{ paddingBlock: 48 }}>

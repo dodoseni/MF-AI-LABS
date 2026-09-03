@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
-import { Badge, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
-import { currentUser, developmentGoals } from '../data/mock'
+import { ApiNotice, Badge, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
+import { developmentGoals } from '../data/mock'
 import { useCertifications } from '../context/CertificationsContext'
+import { useProfile } from '../context/ProfileContext'
 import { useLanguage } from '../i18n/LanguageContext'
 import { languageNames, type Lang } from '../i18n/translations'
 
 export default function Profile() {
   const { t, lang, setLang } = useLanguage()
+  const { profile: currentUser, status: profileStatus, refetch: refetchProfile } = useProfile()
   const { careerPath, certifications } = useCertifications()
 
   const currentLevel = careerPath.find((l) => l.status === 'current')
@@ -16,6 +18,16 @@ export default function Profile() {
   return (
     <div>
       <PageHead title={t('title.profile')} subtitle={t('profile.subtitle')} />
+
+      {(profileStatus === 'loading' || profileStatus === 'error') && (
+        <ApiNotice
+          status={profileStatus}
+          loadingText={t('common.loadingProfile')}
+          errorText={t('common.errorProfile')}
+          onRetry={profileStatus === 'error' ? refetchProfile : undefined}
+          retryLabel={t('common.retry')}
+        />
+      )}
 
       <div className="grid grid-main-2">
         {/* Left: identity + stats */}

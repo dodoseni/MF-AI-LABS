@@ -2,11 +2,16 @@ import type {
   CareerLevel,
   Certification,
   DevelopmentGoal,
+  Profile,
   StudyChecklist,
 } from '../types'
 
-export const currentUser = {
+// Matches the `Profile` type and the `GET /api/profile` response shape (MIKK-52) so it can be
+// used as an immediate, safe fallback while the real profile is loading or if the API is down.
+export const currentUser: Profile = {
+  id: 'amalie-berg',
   name: 'Amalie Berg',
+  email: 'amalie.berg@soprasteria.com',
   role: 'Cloud Solutions Consultant',
   level: 'Level 3',
   office: 'Oslo',

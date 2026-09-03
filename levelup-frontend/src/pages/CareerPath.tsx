@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Badge, Card, Icon, LevelRoadmap, PageHead, ProgressBar } from '../components/ui'
+import { ApiNotice, Badge, Card, Icon, LevelRoadmap, PageHead, ProgressBar } from '../components/ui'
 import { useCertifications } from '../context/CertificationsContext'
 import type { CareerLevel } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -109,7 +109,7 @@ function LevelDetail({ level }: { level: CareerLevel }) {
 
 export default function CareerPathPage() {
   const { t } = useLanguage()
-  const { careerPath } = useCertifications()
+  const { careerPath, careerLevelsStatus, refetchCareerLevels } = useCertifications()
   const current = careerPath.find((l) => l.status === 'current')!
   const completedCount = careerPath.filter((l) => l.status === 'completed').length
 
@@ -122,6 +122,16 @@ export default function CareerPathPage() {
         title={t('title.career')}
         subtitle={t('career.subtitle')}
       />
+
+      {(careerLevelsStatus === 'loading' || careerLevelsStatus === 'error') && (
+        <ApiNotice
+          status={careerLevelsStatus}
+          loadingText={t('common.loadingCareerLevels')}
+          errorText={t('common.errorCareerLevels')}
+          onRetry={careerLevelsStatus === 'error' ? refetchCareerLevels : undefined}
+          retryLabel={t('common.retry')}
+        />
+      )}
 
       {/* Roadmap tracker — unchanged per MIKK-37 */}
       <Card>

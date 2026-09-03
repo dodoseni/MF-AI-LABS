@@ -230,6 +230,51 @@ export function LevelRoadmap({
   )
 }
 
+/* ---------- API status notice (loading / error, with optional retry) ---------- */
+/**
+ * Inline banner shown while an API-backed resource (profile, certifications, career levels,
+ * learning plan) is loading or failed to load. Used alongside a safe local/mock fallback so
+ * the page never renders blank — see `context/CertificationsContext.tsx` and
+ * `context/ProfileContext.tsx`.
+ */
+export function ApiNotice({
+  status,
+  loadingText,
+  errorText,
+  onRetry,
+  retryLabel,
+  className = '',
+}: {
+  status: 'loading' | 'error'
+  loadingText: string
+  errorText: string
+  onRetry?: () => void
+  retryLabel?: string
+  className?: string
+}) {
+  if (status === 'loading') {
+    return (
+      <div className={`api-notice api-notice-loading ${className}`} role="status">
+        <span className="spinner" aria-hidden="true" />
+        <span>{loadingText}</span>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`api-notice api-notice-error ${className}`} role="alert">
+      <Icon name="alert" size={16} />
+      <span>{errorText}</span>
+      {onRetry && (
+        <button type="button" className="api-notice-retry" onClick={onRetry}>
+          <Icon name="refresh" size={13} />
+          {retryLabel ?? 'Retry'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 /* ---------- Empty note (page head) ---------- */
 export function PageHead({
   title,
