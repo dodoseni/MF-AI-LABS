@@ -1,0 +1,26 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// Phase 1 (MIKK-51) — foundation: datasource/generator config for Azure SQL.
+// Phase 2 (MIKK-53) added the DatabaseSmokeTest model below — a standalone
+// connectivity-check table, isolated from every product entity
+// (Certification/CareerLevel/Profile/learning-plan all still read from
+// src/data/ mock data and are untouched by this model).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+// Phase 2 (MIKK-53) — smoke-test-only model, used solely by GET /api/db-test
+// to verify Azure SQL connectivity. Not a product entity; safe to drop in one
+// pass later (see the rollback checklist in MIKK-53's final comment).
+model DatabaseSmokeTest {
+  id        Int      @id @default(autoincrement())
+  message   String
+  createdAt DateTime @default(now())
+}

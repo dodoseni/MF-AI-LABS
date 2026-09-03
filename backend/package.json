@@ -14,11 +14,13 @@
     "test": "jest --runInBand"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "cors": "^2.8.5",
     "express": "^4.19.2"
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "prisma": "^6.19.3",
     "supertest": "^7.0.0"
   }
 }
