@@ -301,3 +301,24 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
 - Decision/notes: the MIKK-46 implementation itself is correct and fully matches the target contract; the only issue is branch staleness relative to `develop`, which surfaces as (a) two real, resolvable merge conflicts and (b) a stale `/api/competencies` 200 that will self-resolve once rebased.
 - Open questions / risks:
   - Recommend rebasing/merging `agent/back-end-developer/090294b133d2` onto current `origin/develop` (picking the branch's `StudyChecklist[]` for `learningPlan.js` and keeping both `docs/CHANGELOG.md` entries) before merge, then re-running `npm test` and re-curling `/api/competencies` to confirm 404 post-rebase.
+
+## 2026-09-03 — MIKK-48: Rebase Learning Plan redesign branch (agent/back-end-developer/090294b133d2) onto current develop
+
+- Component: backend
+- Issue/ref: MIKK-48 (resolves the staleness Test-Agent flagged in MIKK-47)
+- What was done:
+  - Rebased `agent/back-end-developer/090294b133d2` (MIKK-46 `22b0905` + MIKK-47 `551b50e`) onto current `origin/develop` (`f40678a`, which already contains MIKK-42's full `/api/competencies` removal).
+  - Resolved the `backend/src/data/learningPlan.js` conflict by keeping the branch's `StudyChecklist[]` model as-is (`plan-az-305` + 7 items) and discarding develop's now-superseded `goals`/`tasks`/`weeklyPlan`/`calendar` mock data entirely — none of MIKK-42's `g2`/`e6`/`e9`/`e13` removals were relevant since that whole model is gone.
+  - Resolved the `docs/CHANGELOG.md` conflict by keeping both the MIKK-42 (develop) and MIKK-46/47 (branch) entries, in date order, no duplication.
+  - Found and removed one additional problem the git auto-merge introduced without flagging a conflict: `backend/tests/learningPlan.test.js` had auto-merged in develop's MIKK-42 regression test (`does not include the removed Competency goal...`, asserting on `data.goals`/`data.calendar`) alongside the branch's rewritten StudyChecklist assertions. That test is for a model that no longer exists post-MIKK-46, so it was deleted (amended into the MIKK-46 commit via `git rebase -i --edit`) rather than left to fail.
+  - Verified final backend API surface: `GET /api/health`, `/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan` all → 200; `GET /api/competencies` → 404 (route/controller/service/repository/data/test all absent, confirmed via `find backend -iname "*competenc*"` returning nothing and `app.js` having no registration).
+  - Ran `cd backend && npm ci && npm test`: 6 suites / 12 tests passing.
+  - Confirmed `GET /api/learning-plan` response is byte-for-byte identical to `levelup-frontend/src/data/mock.ts`'s `studyChecklists` and matches `StudyChecklist`/`StudyChecklistItem` in `levelup-frontend/src/types/index.ts`.
+  - Confirmed no changes outside `backend/` (learning-plan slice only) and `docs/CHANGELOG.md`: no diff vs. `origin/develop` in `levelup-frontend/`, `.github/workflows/`, SQL/database, Azure config, AI/Foundry, or auth.
+  - `git merge-tree --write-tree origin/develop HEAD` succeeds cleanly (no conflicts) — branch now merges into `develop` with zero manual intervention.
+  - Force-pushed the rebased branch to `origin/agent/back-end-developer/090294b133d2` (history rewritten by the rebase; `--force-with-lease`).
+- Decision/notes:
+  - Did not restore any Competency backend code or docs — MIKK-42's removal is fully preserved.
+  - Did not restore `goals`/`tasks`/`weeklyPlan`/`calendar` — the StudyChecklist[] contract from MIKK-46 is the sole surviving Learning Plan model, per this issue's explicit instruction not to redesign again.
+- Tests: `cd backend && npm ci && npm test` → 6 suites / 12 tests passing. Manual curl of all 6 routes above confirms the contract live.
+- Open questions / risks: None. Branch is rebased on latest `develop`, conflict-free to merge, tests green, endpoint surface verified both automatically and manually.
