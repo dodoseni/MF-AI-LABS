@@ -168,7 +168,7 @@ export function Button({
   className = '',
 }: {
   children: ReactNode
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm'
   onClick?: () => void
   type?: 'button' | 'submit'

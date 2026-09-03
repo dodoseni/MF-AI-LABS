@@ -11,6 +11,7 @@ import AiAssistant from './pages/AiAssistant'
 import Profile from './pages/Profile'
 import { useLanguage } from './i18n/LanguageContext'
 import type { TranslationKey } from './i18n/translations'
+import { CertificationsProvider } from './context/CertificationsContext'
 
 const pageTitleKeys: Record<string, TranslationKey> = {
   '/': 'title.dashboard',
@@ -54,5 +55,9 @@ function Shell() {
 }
 
 export default function App() {
-  return <Shell />
+  return (
+    <CertificationsProvider>
+      <Shell />
+    </CertificationsProvider>
+  )
 }

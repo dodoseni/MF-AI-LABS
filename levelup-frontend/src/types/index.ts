@@ -49,6 +49,9 @@ export interface Requirement {
   label: string
   detail: string
   met: boolean
+  /** Id of the certification this requirement tracks (matches `Certification.id`). Used to
+   *  recompute `met`/`detail` live from the certifications list instead of a static flag. */
+  certId?: string
 }
 
 export interface Milestone {
@@ -68,15 +71,6 @@ export interface DevelopmentGoal {
   dueDate: string
 }
 
-export interface StudyPlanItem {
-  id: string
-  title: string
-  source: string
-  duration: string
-  completed: boolean
-  type: 'course' | 'certification' | 'reading' | 'practice'
-}
-
 export interface ChatMessage {
   id: string
   role: 'user' | 'assistant'
@@ -84,34 +78,17 @@ export interface ChatMessage {
   timestamp: string
 }
 
-export type CalendarEventType = 'study' | 'exam' | 'practice' | 'milestone'
-
-export interface CalendarEvent {
+/** A single todo-list item inside a certification study checklist. */
+export interface StudyChecklistItem {
   id: string
-  date: string
-  title: string
-  type: CalendarEventType
-}
-
-export interface WeeklyPlanDay {
-  day: string
-  items: string[]
-}
-
-export interface DashboardCardStat {
-  icon: string
   label: string
-  value: string
-  detail: string
-  tone: 'brand' | 'success' | 'warning' | 'info' | 'violet'
+  done: boolean
 }
 
-export interface RecommendedAction {
+/** A simple, per-certification study checklist — the entire Learning Plan data model. */
+export interface StudyChecklist {
   id: string
-  title: string
-  description: string
-  impact: 'high' | 'medium' | 'low'
-  category: string
-  href: string
-  cta: string
+  certificationId: string
+  certificationName: string
+  items: StudyChecklistItem[]
 }

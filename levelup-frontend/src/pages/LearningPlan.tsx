@@ -1,77 +1,72 @@
 import { useState } from 'react'
-import { Card, CardHead, Icon, PageHead, ProgressBar, ProgressLabel, Badge } from '../components/ui'
-import { Calendar } from '../components/Calendar'
-import { developmentGoals, studyPlan, calendarEvents, weeklyStudyPlan } from '../data/mock'
+import { Button, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
+import { studyChecklists as initialChecklists } from '../data/mock'
+import { useCertifications } from '../context/CertificationsContext'
 import { useLanguage } from '../i18n/LanguageContext'
-import type { DevelopmentGoal } from '../types'
-
-const goalTone: Record<string, string> = {
-  completed: 'success',
-  'in-progress': 'blue',
-  active: 'info',
-}
-
-const goalStatusKey = {
-  completed: 'common.status.completed',
-  'in-progress': 'common.status.in-progress',
-  active: 'common.status.active',
-} as const
-
-const typeIcon: Record<string, string> = {
-  course: 'grad',
-  certification: 'cert',
-  reading: 'book',
-  practice: 'target',
-}
-
-const typeColor: Record<string, string> = {
-  course: 'var(--brand-600)',
-  certification: 'var(--violet)',
-  reading: 'var(--teal)',
-  practice: 'var(--warning)',
-}
-
-function recomputeGoalProgress(goal: DevelopmentGoal): DevelopmentGoal {
-  if (goal.milestones.length === 0) return goal
-  const done = goal.milestones.filter((m) => m.done).length
-  const progress = Math.round((done / goal.milestones.length) * 100)
-  return {
-    ...goal,
-    progress,
-    status: progress === 100 ? 'completed' : goal.status === 'completed' ? 'active' : goal.status,
-  }
-}
+import type { StudyChecklist } from '../types'
 
 export default function LearningPlan() {
   const { t } = useLanguage()
-  const [goals, setGoals] = useState<DevelopmentGoal[]>(developmentGoals)
-  const [plan, setPlan] = useState(studyPlan)
+  const { certifications } = useCertifications()
+  const [checklists, setChecklists] = useState<StudyChecklist[]>(initialChecklists)
+  const [newItemText, setNewItemText] = useState<Record<string, string>>({})
+  const [showAddPlan, setShowAddPlan] = useState(false)
+  const [newPlanCertId, setNewPlanCertId] = useState('')
+  const [deletePlanId, setDeletePlanId] = useState<string | null>(null)
 
-  const active = goals.filter((g) => g.status !== 'completed').length
-  const completed = goals.filter((g) => g.status === 'completed').length
-  const avgProgress =
-    Math.round((goals.reduce((s, g) => s + g.progress, 0) / goals.length) * 10) / 10
+  const availableCerts = certifications.filter(
+    (c) => !checklists.some((p) => p.certificationId === c.id),
+  )
 
-  const planDone = plan.filter((s) => s.completed).length
-  const planPct = Math.round((planDone / plan.length) * 100)
-
-  function toggleMilestone(goalId: string, milestoneId: string) {
-    setGoals((prev) =>
-      prev.map((g) => {
-        if (g.id !== goalId) return g
-        const milestones = g.milestones.map((m) =>
-          m.id === milestoneId ? { ...m, done: !m.done } : m,
-        )
-        return recomputeGoalProgress({ ...g, milestones })
-      }),
+  function toggleItem(planId: string, itemId: string) {
+    setChecklists((prev) =>
+      prev.map((p) =>
+        p.id === planId
+          ? { ...p, items: p.items.map((i) => (i.id === itemId ? { ...i, done: !i.done } : i)) }
+          : p,
+      ),
     )
   }
 
-  function togglePlanItem(id: string) {
-    setPlan((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, completed: !s.completed } : s)),
+  function deleteItem(planId: string, itemId: string) {
+    setChecklists((prev) =>
+      prev.map((p) => (p.id === planId ? { ...p, items: p.items.filter((i) => i.id !== itemId) } : p)),
     )
   }
+
+  function addItem(planId: string) {
+    const text = (newItemText[planId] ?? '').trim()
+    if (!text) return
+    setChecklists((prev) =>
+      prev.map((p) =>
+        p.id === planId
+          ? { ...p, items: [...p.items, { id: `item-${Date.now()}`, label: text, done: false }] }
+          : p,
+      ),
+    )
+    setNewItemText((prev) => ({ ...prev, [planId]: '' }))
+  }
+
+  function addPlan() {
+    const cert = certifications.find((c) => c.id === newPlanCertId)
+    if (!cert) return
+    const plan: StudyChecklist = {
+      id: `plan-${cert.id}-${Date.now()}`,
+      certificationId: cert.id,
+      certificationName: cert.name,
+      items: [],
+    }
+    setChecklists((prev) => [plan, ...prev])
+    setNewPlanCertId('')
+    setShowAddPlan(false)
+  }
+
+  function deletePlan(id: string) {
+    setChecklists((prev) => prev.filter((p) => p.id !== id))
+    setDeletePlanId(null)
+  }
+
+  const deleteTarget = checklists.find((p) => p.id === deletePlanId) ?? null
 
   return (
     <div>
@@ -79,218 +74,195 @@ export default function LearningPlan() {
         title={t('title.learning')}
         subtitle={t('learning.subtitle')}
         actions={
-          <button type="button" className="btn btn-primary">
+          <Button onClick={() => setShowAddPlan(true)}>
             <Icon name="plus" size={16} />
-            {t('common.newGoal')}
-          </button>
+            {t('learning.newPlan')}
+          </Button>
         }
       />
 
-      {/* Overview cards */}
-      <div className="grid grid-4 mb-16">
-        <div className="stat-card">
-          <div className="stat-icon tone-brand"><Icon name="goal" size={20} /></div>
-          <div><div className="stat-value">{active}</div><div className="stat-label">{t('learning.stat.activeGoals')}</div></div>
+      {checklists.length === 0 ? (
+        <div className="card card-pad center" style={{ paddingBlock: 48 }}>
+          <p style={{ color: 'var(--text-secondary)' }}>{t('learning.empty')}</p>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon tone-success"><Icon name="checkCircle" size={20} /></div>
-          <div><div className="stat-value">{completed}</div><div className="stat-label">{t('learning.stat.completed')}</div></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon tone-violet"><Icon name="chart" size={20} /></div>
-          <div><div className="stat-value">{avgProgress}%</div><div className="stat-label">{t('learning.stat.avgProgress')}</div></div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon tone-info"><Icon name="book" size={20} /></div>
-          <div><div className="stat-value">{planPct}%</div><div className="stat-label">{t('learning.stat.studyPlan')}</div></div>
-        </div>
-      </div>
+      ) : (
+        <div className="grid grid-2" style={{ alignItems: 'start' }}>
+          {checklists.map((plan) => {
+            const done = plan.items.filter((i) => i.done).length
+            const pct = plan.items.length ? Math.round((done / plan.items.length) * 100) : 0
 
-      {/* Calendar */}
-      <Card className="mb-16">
-        <CardHead title={t('learning.calendar.title')} icon="calendar" />
-        <p style={{ padding: '0 20px', margin: '-6px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
-          {t('learning.calendar.subtitle')}
-        </p>
-        <Calendar events={calendarEvents} />
-      </Card>
-
-      {/* Weekly plan */}
-      <Card className="mb-16">
-        <CardHead title={t('learning.weekly.title')} icon="calendar" />
-        <p style={{ padding: '0 20px', margin: '-6px 0 12px', fontSize: 13, color: 'var(--text-secondary)' }}>
-          {t('learning.weekly.subtitle')}
-        </p>
-        <div style={{ padding: '0 20px 20px' }}>
-          <div className="weekly-plan">
-            {weeklyStudyPlan.map((d) => (
-              <div className="weekly-day" key={d.day}>
-                <div className="weekly-day-name">{d.day}</div>
-                {d.items.map((item) => (
-                  <div className="weekly-day-item" key={item}>
-                    {item}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-
-      <div className="grid grid-main-2">
-        {/* Goals */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h3 style={{ fontSize: 15, fontWeight: 700 }}>{t('learning.goals.title')}</h3>
-          {goals.map((g) => (
-            <Card key={g.id}>
-              <div style={{ padding: 18 }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 12,
-                    marginBottom: 12,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 10,
-                      background: 'var(--brand-50)',
-                      color: 'var(--brand-600)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <Icon name={g.category === 'Certification' ? 'cert' : 'goal'} size={18} />
-                  </span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 650, color: 'var(--text-strong)' }}>
-                      {g.title}
-                    </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        marginTop: 4,
-                      }}
-                    >
-                      <Badge tone={goalTone[g.status]} dot>
-                        {t(goalStatusKey[g.status as keyof typeof goalStatusKey])}
-                      </Badge>
-                      <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                        {g.category} · {t('learning.due', { date: formatDate(g.dueDate) })}
-                      </span>
-                    </div>
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 16,
-                      fontWeight: 800,
-                      color: 'var(--text-strong)',
-                    }}
-                  >
-                    {g.progress}%
-                  </span>
-                </div>
-
-                <ProgressBar value={g.progress} tone={g.status === 'completed' ? 'success' : 'violet'} />
-
-                <div style={{ marginTop: 14 }}>
-                  {g.milestones.map((m) => (
+            return (
+              <Card key={plan.id}>
+                <CardHead
+                  title={plan.certificationName}
+                  icon="grad"
+                  action={
                     <button
                       type="button"
-                      className="milestone milestone-btn"
-                      key={m.id}
-                      onClick={() => toggleMilestone(g.id, m.id)}
+                      className="icon-btn icon-btn-danger"
+                      onClick={() => setDeletePlanId(plan.id)}
+                      aria-label={t('learning.deletePlan')}
+                      title={t('learning.deletePlan')}
                     >
-                      <div className={`milestone-check ${m.done ? 'done' : ''}`}>
-                        {m.done && <Icon name="check" size={14} />}
-                      </div>
-                      <div>
+                      <Icon name="trash" size={16} />
+                    </button>
+                  }
+                />
+                <div style={{ padding: '4px 20px 8px' }}>
+                  <div className="progress-label">
+                    <span>{t('learning.plan.progress')}</span>
+                    <span className="val">
+                      {done}/{plan.items.length} · {pct}%
+                    </span>
+                  </div>
+                  <ProgressBar value={pct} />
+                </div>
+
+                <div>
+                  {plan.items.map((item) => (
+                    <div className="study-item" key={item.id}>
+                      <button
+                        type="button"
+                        className={`study-check ${item.done ? 'done' : ''}`}
+                        onClick={() => toggleItem(plan.id, item.id)}
+                        aria-label={item.done ? t('learning.markIncomplete') : t('learning.markComplete')}
+                      >
+                        {item.done && <Icon name="check" size={14} />}
+                      </button>
+                      <div
+                        className="study-info"
+                        style={{ flex: 1 }}
+                      >
                         <div
+                          className="t"
                           style={{
-                            fontSize: 13.5,
-                            fontWeight: 500,
-                            color: m.done ? 'var(--text-secondary)' : 'var(--text-strong)',
-                            textDecoration: m.done ? 'line-through' : 'none',
+                            textDecoration: item.done ? 'line-through' : 'none',
+                            color: item.done ? 'var(--text-secondary)' : undefined,
                           }}
                         >
-                          {m.label}
+                          {item.label}
                         </div>
-                        <div className="milestone-date">{formatDate(m.date)}</div>
                       </div>
-                    </button>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() => deleteItem(plan.id, item.id)}
+                        aria-label={t('learning.deleteItem')}
+                        title={t('learning.deleteItem')}
+                      >
+                        <Icon name="close" size={14} />
+                      </button>
+                    </div>
                   ))}
+                  {plan.items.length === 0 && (
+                    <p style={{ padding: '0 20px 12px', fontSize: 13, color: 'var(--text-secondary)' }}>
+                      {t('learning.noItems')}
+                    </p>
+                  )}
                 </div>
-              </div>
-            </Card>
-          ))}
+
+                <div style={{ padding: '12px 20px 20px', display: 'flex', gap: 8 }}>
+                  <input
+                    type="text"
+                    placeholder={t('learning.addItemPlaceholder')}
+                    value={newItemText[plan.id] ?? ''}
+                    onChange={(e) => setNewItemText((prev) => ({ ...prev, [plan.id]: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') addItem(plan.id)
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      border: '1px solid var(--border-strong)',
+                      borderRadius: 8,
+                      fontSize: 13.5,
+                      color: 'var(--text-strong)',
+                      background: 'var(--surface)',
+                    }}
+                  />
+                  <Button size="sm" variant="secondary" onClick={() => addItem(plan.id)}>
+                    <Icon name="plus" size={14} />
+                    {t('common.add')}
+                  </Button>
+                </div>
+              </Card>
+            )
+          })}
         </div>
+      )}
 
-        {/* Study plan */}
-        <div>
-          <Card>
-            <CardHead
-              title={t('learning.plan.title')}
-              icon="grad"
-              action={
-                <button className="card-link" style={{ border: 'none', background: 'none' }}>
-                  {t('common.editPlan')} <Icon name="arrowRight" size={14} />
-                </button>
-              }
-            />
-            <div style={{ padding: '4px 20px 8px' }}>
-              <ProgressLabel label={t('learning.plan.progress')} value={planPct} />
-              <ProgressBar value={planPct} />
+      {showAddPlan && (
+        <div className="modal-overlay" onClick={() => setShowAddPlan(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>{t('learning.newPlan')}</h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setShowAddPlan(false)}
+                aria-label={t('common.close')}
+              >
+                <Icon name="close" size={18} />
+              </button>
             </div>
-            <div>
-              {plan.map((s) => (
-                <button
-                  type="button"
-                  className="study-item study-item-btn"
-                  key={s.id}
-                  onClick={() => togglePlanItem(s.id)}
-                >
-                  <span className={`study-check ${s.completed ? 'done' : ''}`}>
-                    {s.completed && <Icon name="check" size={14} />}
-                  </span>
-                  <span className="study-type" style={{ color: typeColor[s.type] }}>
-                    <Icon name={typeIcon[s.type]} size={17} />
-                  </span>
-                  <div className="study-info">
-                    <div className="t" style={{ textDecoration: s.completed ? 'line-through' : 'none', color: s.completed ? 'var(--text-secondary)' : undefined }}>
-                      {s.title}
-                    </div>
-                    <div className="s">
-                      {s.source} · {s.duration}
-                    </div>
-                  </div>
-                  <Badge tone="gray">{s.type}</Badge>
-                </button>
-              ))}
+            <div className="modal-body">
+              <label className="modal-field">
+                <span>{t('learning.selectCertification')}</span>
+                <select value={newPlanCertId} onChange={(e) => setNewPlanCertId(e.target.value)}>
+                  <option value="">{t('learning.selectCertificationPlaceholder')}</option>
+                  {availableCerts.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {availableCerts.length === 0 && (
+                <p style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  {t('learning.allCertsHavePlans')}
+                </p>
+              )}
             </div>
-          </Card>
+            <div className="modal-footer">
+              <Button variant="secondary" onClick={() => setShowAddPlan(false)}>
+                {t('common.cancel')}
+              </Button>
+              <Button onClick={addPlan}>{t('learning.createPlan')}</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
-          <Card className="mt-16">
-            <CardHead title={t('learning.tips.title')} icon="sparkle" />
-            <div style={{ padding: '4px 20px 16px' }}>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                {t('learning.tips.body')}
+      {deleteTarget && (
+        <div className="modal-overlay" onClick={() => setDeletePlanId(null)}>
+          <div className="modal" style={{ maxWidth: 380 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h3>{t('learning.confirmDelete.title')}</h3>
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setDeletePlanId(null)}
+                aria-label={t('common.close')}
+              >
+                <Icon name="close" size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p style={{ fontSize: 13.5, color: 'var(--text-secondary)' }}>
+                {t('learning.confirmDelete.body', { name: deleteTarget.certificationName })}
               </p>
             </div>
-          </Card>
+            <div className="modal-footer">
+              <Button variant="secondary" onClick={() => setDeletePlanId(null)}>
+                {t('common.cancel')}
+              </Button>
+              <Button variant="danger" onClick={() => deletePlan(deleteTarget.id)}>
+                {t('common.delete')}
+              </Button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }

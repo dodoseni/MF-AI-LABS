@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Badge, Card, CardHead, Icon, LevelRoadmap, PageHead, ProgressBar } from '../components/ui'
-import { careerPath } from '../data/mock'
+import { Badge, Card, Icon, LevelRoadmap, PageHead, ProgressBar } from '../components/ui'
+import { useCertifications } from '../context/CertificationsContext'
 import type { CareerLevel } from '../types'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -110,11 +109,9 @@ function LevelDetail({ level }: { level: CareerLevel }) {
 
 export default function CareerPathPage() {
   const { t } = useLanguage()
+  const { careerPath } = useCertifications()
   const current = careerPath.find((l) => l.status === 'current')!
-  const currentIndex = careerPath.findIndex((l) => l.id === current.id)
-  const next = careerPath[currentIndex + 1]
   const completedCount = careerPath.filter((l) => l.status === 'completed').length
-  const currentMet = current.requirements.filter((r) => r.met).length
 
   const [selectedId, setSelectedId] = useState(current.id)
   const selected = careerPath.find((l) => l.id === selectedId) ?? current
@@ -126,7 +123,7 @@ export default function CareerPathPage() {
         subtitle={t('career.subtitle')}
       />
 
-      {/* Roadmap tracker */}
+      {/* Roadmap tracker — unchanged per MIKK-37 */}
       <Card>
         <div style={{ padding: '18px 20px 20px' }}>
           <div
@@ -153,67 +150,9 @@ export default function CareerPathPage() {
         </div>
       </Card>
 
-      <div className="grid grid-main-2 mt-24">
-        {/* Selected level detail */}
-        <div>
-          <LevelDetail level={selected} />
-        </div>
-
-        {/* Prediction / summary sidebar — always reflects the user's real current level */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div className="next-level-card">
-            <div className="next-label">{t('career.nextReadiness')}</div>
-            <div className="next-title">
-              {current.name} → {next?.name ?? '—'}
-            </div>
-            <ProgressBar value={current.progress} />
-            <div className="next-meta">
-              <span>{t('career.percentComplete', { value: current.progress })}</span>
-              <span>{t('career.estReadiness', { date: 'Mar 2027' })}</span>
-            </div>
-          </div>
-
-          <Card>
-            <CardHead title={t('career.missingRequirements')} icon="alert" />
-            <div>
-              {current.requirements
-                .filter((r) => !r.met)
-                .map((r) => (
-                  <div className="req-summary-item" key={r.label}>
-                    <span style={{ color: 'var(--danger)' }}>
-                      <Icon name="alert" size={18} />
-                    </span>
-                    <div className="req-summary-info">
-                      <div className="t">{r.label}</div>
-                      <div className="d">{r.detail}</div>
-                    </div>
-                  </div>
-                ))}
-              {current.requirements.every((r) => r.met) && (
-                <div style={{ padding: '12px 20px', fontSize: 13, color: 'var(--text-secondary)' }}>
-                  {t('career.allMet')}
-                </div>
-              )}
-            </div>
-          </Card>
-
-          <Card>
-            <CardHead title={t('career.fastSummary')} icon="checkCircle" />
-            <div style={{ padding: '4px 20px 18px' }}>
-              <div className="progress-label">
-                <span>{t('career.requirementsMet')}</span>
-                <span className="val">{currentMet}/{current.requirements.length}</span>
-              </div>
-              <ProgressBar value={current.progress} tone="violet" />
-              <p
-                className="mt-16"
-                style={{ fontSize: 13, color: 'var(--text-secondary)' }}
-              >
-                {t('career.tip')} <Link to="/certifications">{t('nav.certifications')}</Link>
-              </p>
-            </div>
-          </Card>
-        </div>
+      {/* Core level details only — no readiness/missing-requirements sidebar (MIKK-37) */}
+      <div className="mt-24">
+        <LevelDetail level={selected} />
       </div>
     </div>
   )
