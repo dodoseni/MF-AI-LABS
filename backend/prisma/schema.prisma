@@ -1,0 +1,15 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// Phase 1 (MIKK-51) — foundation only. No models yet: this issue is scoped to
+// installing/configuring Prisma for Azure SQL, not to migrating any product
+// entity or adding the Phase 2 DatabaseSmokeTest model (tracked separately).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
