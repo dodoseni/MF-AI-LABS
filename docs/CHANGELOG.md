@@ -248,6 +248,20 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - Profile's "Active learning plans" card still shows the old goal-based model (`developmentGoals`), which is now conceptually disconnected from the new Learning Plan checklist model. Profile wasn't in this issue's scope, so it was left as-is — flagging for Product Owner/next frontend pass on whether Profile should surface the new study-checklist plans instead.
   - Verified with `tsc -b` (clean), `vite build` (clean), `oxlint` (only the two pre-existing warnings, unrelated), and a local Playwright pass across Dashboard, Career Path (incl. level switching), Certifications (incl. full add → delete-with-confirmation flow) and Learning Plan (incl. add/toggle/delete checklist items and create/delete a plan) with zero console/page errors, in both English and Norwegian.
 
+## 2026-09-03 — MIKK-45: QA validation of MIKK-42 backend cleanup (/api/competencies removal)
+
+- Component: QA
+- Issue/ref: MIKK-45 (validates MIKK-42), repo `dodoseni/MF-AI-LABS`, branch `agent/back-end-developer/a8484a2c1b6f`, commit `3ca76d3`
+- What was done:
+  - Ran `npm ci && npm test` in `backend/`: 6 suites / 10 tests passing, matching MIKK-42's report.
+  - Confirmed `/api/competencies` removed completely: no route/controller/service/repository/data/test files remain (`git show --stat 3ca76d3` shows only deletions for these), no registration in `src/app.js`, and no mention in `backend/README.md`'s API table or project-structure listing. Live `GET /api/competencies` → `404 {"error":"Not Found"}`.
+  - Confirmed `GET /api/learning-plan` no longer returns goal `g2` or calendar events `e6`/`e9`/`e13` (verified live, not just via the new regression test).
+  - Confirmed all 5 remaining endpoints respond 200: `/api/health`, `/api/profile`, `/api/certifications`, `/api/career-levels`, `/api/learning-plan`.
+  - Confirmed no changes to `levelup-frontend/`, `.github/workflows/`, or any Azure/SQL/AI config — diff between this branch and its merge-base with `origin/develop` touches only `backend/`, root `README.md`, and `docs/CHANGELOG.md`.
+  - Compared against `origin/develop` via `git merge-tree`: 0 conflict markers; merge-base(`origin/develop`, branch) == `origin/develop` HEAD (`6541494`), i.e. the branch is a direct fast-forward descendant of `develop` — a clean, conflict-free merge is guaranteed as of this validation.
+- Decision/notes: No application code was modified per the issue's constraint; this entry documents QA sign-off only.
+- Open questions / risks: None blocking. The pre-existing `/api/learning-plan` vs. current frontend model mismatch flagged in MIKK-42 remains open and is unrelated to this cleanup's correctness — carried forward as a separate follow-up, not a defect in this change.
+
 ## 2026-09-03 — MIKK-42: Remove stale Competency backend mock data after MIKK-36 frontend removal
 
 - Component: backend
