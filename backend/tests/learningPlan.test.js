@@ -25,4 +25,18 @@ describe('GET /api/learning-plan', () => {
     expect(Array.isArray(data.calendar)).toBe(true);
     expect(data.calendar.length).toBeGreaterThan(0);
   });
+
+  it('does not include the removed Competency goal or its milestone events', async () => {
+    const res = await request(app).get('/api/learning-plan');
+    const { data } = res.body;
+
+    // g2 ("Strengthen Sales competency to level 4") was removed after the
+    // Competency feature was deleted from the frontend (MIKK-36/MIKK-42).
+    expect(data.goals.some((g) => g.id === 'g2')).toBe(false);
+
+    // e6, e9, e13 were the calendar milestones that only existed to support
+    // the removed g2 goal.
+    const calendarIds = data.calendar.map((e) => e.id);
+    expect(calendarIds).not.toEqual(expect.arrayContaining(['e6', 'e9', 'e13']));
+  });
 });

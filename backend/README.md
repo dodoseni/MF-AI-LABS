@@ -62,7 +62,6 @@ unexpected errors are handled by the centralized error handler in `src/app.js`.
 | GET | `/api/health` | Liveness check. | `{ "status": "ok" }` |
 | GET | `/api/profile` | The current mock user's profile (identity, `level`/`nextLevel` as `"Level N"`, office). | `{ "data": { ...profile } }` |
 | GET | `/api/certifications` | All certifications (status, category, level, progress, `requiredFor: ["Level 1".."Level 3"]`, description). | `{ "data": [ ...certifications ] }` |
-| GET | `/api/competencies` | The five competency areas (current/target/previous self-assessment levels). | `{ "data": [ ...competencies ] }` |
 | GET | `/api/career-levels` | Career roadmap Level 1 → Level 4, in progression order, each with `requirementMode` (`all`/`choose`/`holistic`), `requirementNote`, `chooseAtLeast` (when `choose`), `requirements`, and `focusAreas` (when `holistic`). | `{ "data": [ ...careerLevels ] }` |
 | GET | `/api/learning-plan` | The user's learning plan: development goals (+ milestones), study tasks, weekly plan, calendar events. | `{ "data": { "goals": [...], "tasks": [...], "weeklyPlan": [...], "calendar": [...] } }` |
 
@@ -93,38 +92,32 @@ backend/
       health.js
       profile.js
       certifications.js
-      competencies.js
       careerLevels.js
       learningPlan.js
     controllers/           # req/res handling — call a service, shape the HTTP response
       profileController.js
       certificationsController.js
-      competenciesController.js
       careerLevelsController.js
       learningPlanController.js
     services/              # Business logic — currently pass-through to repositories
       profileService.js
       certificationsService.js
-      competenciesService.js
       careerLevelsService.js
       learningPlanService.js
     repositories/          # Data access — the ONLY layer that knows data is mocked.
       profileRepository.js         #   Promise-based on purpose: a future Azure SQL
       certificationsRepository.js  #   repository only needs to keep the same method
-      competenciesRepository.js    #   names/shapes for routes/controllers/services to
-      careerLevelsRepository.js    #   keep working unchanged.
-      learningPlanRepository.js
+      careerLevelsRepository.js    #   names/shapes for routes/controllers/services to
+      learningPlanRepository.js    #   keep working unchanged.
     data/                  # Local mock datasets, aligned with levelup-frontend/src/data/mock.ts
       profile.js
       certifications.js
-      competencies.js
       careerLevels.js
       learningPlan.js
   tests/
     health.test.js
     profile.test.js
     certifications.test.js
-    competencies.test.js
     careerLevels.test.js
     learningPlan.test.js
     notFound.test.js
