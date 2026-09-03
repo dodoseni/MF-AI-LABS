@@ -423,3 +423,54 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
   - **Immediate blocker**: `SqlConnectionString2`'s stored password does not match the current password for the `azureuser` SQL Server login (or that login is disabled/renamed) — needs correction by whoever manages the Azure SQL Server logins / the Key Vault secret value, then a straightforward re-run of `npx prisma migrate deploy` and `GET /api/db-test` (no code changes needed).
   - Deployment target (VM vs. Azure App Service `levelup-api-dev`) is now *partially* answered: this issue proves the self-hosted-VM path works end-to-end (Managed Identity → Key Vault → Prisma), but whether App Service is also/instead a real target, and if so whether it'd use the same `loadDatabaseUrl.js` mechanism or a native App Service Key Vault reference (which would bypass this code path entirely), is still open.
   - The VM's Managed Identity currently has Key Vault data-plane access (`get`/`list` on secrets) but no ARM/RBAC role at the resource-group level (confirmed via a prior, now-resolved Step-0 investigation) — not a problem for this issue's scope, but worth knowing if a future issue needs to enumerate Azure resources from this VM.
+
+## 2026-09-03 — MIKK-56: Phase 3 verification — credential corrected, full pipeline now live against real Azure SQL
+
+- Component: backend
+- Issue/ref: MIKK-56 (re-verification after the Product Owner corrected `SqlConnectionString2`'s SQL credentials, in-thread). No code changes were needed this round — the `loadDatabaseUrl.js`/`server.js` wiring committed in the prior MIKK-56 pass (`f8cc6c4`) worked correctly once the secret's credential was fixed.
+- What was done:
+  1. Re-ran `loadDatabaseUrl()` — secret fetch + format conversion succeeded (resolved value length changed from 132→144 chars vs. the prior password, confirming the secret content actually changed).
+  2. `SELECT 1` via a fresh `PrismaClient()` — **authentication now succeeds** (no more `P1000`), but surfaced a **second, distinct** issue: `Database \`mikkelrev\` does not exist`.
+  3. Diagnosed with the same independent `mssql`/tedious driver used in the prior round: logged into `master` successfully and queried `sys.databases` — only `master` and a differently-spelled `mikelrev` (single "k") existed at that point; `mikkelrev` (double "k", the name in the secret) did not. Did **not** redirect the app to `mikelrev` — the app always uses whatever database name `SqlConnectionString2` specifies, unmodified; this was purely a read-only diagnostic query.
+  4. Ran the real `npx prisma migrate deploy` against `DATABASE_URL` exactly as resolved from the secret (`database=mikkelrev`) — Azure SQL **auto-created** the `mikkelrev` database (the `azureuser` SQL login has `CREATE DATABASE` rights on the server) and the `add_database_smoke_test` migration applied cleanly to the new, empty database. Re-ran once more to confirm idempotency (`No pending migrations to apply`).
+  5. Verified `DatabaseSmokeTest` exists via `INFORMATION_SCHEMA.TABLES` through Prisma: `database_firewall_rules` (Azure-managed), `_prisma_migrations`, `DatabaseSmokeTest`.
+  6. Started `node src/server.js` on a scratch port with `AZURE_KEY_VAULT_URL` set (no `DATABASE_URL` pre-set) and called `GET /api/db-test` twice.
+  7. `npm test` re-run: 7 suites / 15 tests, still green, unchanged.
+- Migration output (real, against `mikkelrev.database.windows.net`, secret's exact value — nothing redacted, no connection string appeared):
+  ```
+  Prisma schema loaded from prisma/schema.prisma
+  Datasource "db": SQL Server database
+
+  SQL Server database created.
+
+
+  1 migration found in prisma/migrations
+
+  Applying migration `20260903110310_add_database_smoke_test`
+
+  The following migration(s) have been applied:
+
+  migrations/
+    └─ 20260903110310_add_database_smoke_test/
+      └─ migration.sql
+
+  All migrations have been successfully applied.
+  ```
+  Idempotency re-run: `1 migration found in prisma/migrations` / `No pending migrations to apply.`
+- Endpoint test result (real `GET /api/db-test`, called twice against the running server):
+  ```json
+  {"success":true,"databaseConnected":true,"recordCreated":true,"record":{"id":1,"message":"Database connection successful"}}
+  ```
+  ```json
+  {"success":true,"databaseConnected":true,"recordCreated":true,"record":{"id":2,"message":"Database connection successful"}}
+  ```
+  `id` incrementing 1→2 across calls confirms this is the real, persistent Azure SQL database, not a mock. `GET /api/health` continued to return `{"status":"ok"}` throughout.
+- Decision/notes:
+  - **All 3 things the user asked to confirm are now true, from the real endpoint, not a mock**: database connection succeeds, record insertion succeeds, record retrieval succeeds.
+  - The database-name mismatch (`mikelrev` vs. `mikkelrev`) was **not silently worked around** — the app was never pointed at `mikelrev`; `mikkelrev` simply didn't exist yet and Prisma's `migrate deploy` created it (a legitimate, standard Prisma/Azure SQL behavier for `sqlserver` connections with `CREATE DATABASE` rights, not a workaround invented for this issue).
+  - No code changes were required in this pass — the Phase 3 wiring committed previously (`f8cc6c4`) is unchanged and confirmed correct now that the underlying secret is valid.
+- Tests: `cd backend && npm test` → 7 suites / 15 tests, all green.
+- Open questions / risks:
+  - **`mikelrev` (single "k") also exists on the same logical server** as an empty, near-unused database (only the Azure-managed `database_firewall_rules`) — likely an earlier typo or leftover from before the naming was settled. Not touched or deleted by this issue (out of scope); flagged for whoever owns the Azure SQL Server resource to clean up or confirm intentional.
+  - Deployment target (VM vs. Azure App Service `levelup-api-dev`) remains open — this issue only validates the self-hosted-VM path.
+  - `prisma migrate deploy` auto-creating the database on first run is convenient here but is a one-time event tied to this specific empty-database scenario — future migrations should behave normally (`migrate deploy` never diffs schema, only applies pending migration files).

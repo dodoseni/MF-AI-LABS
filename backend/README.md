@@ -91,10 +91,10 @@ drop-in change with no impact on routes, controllers, or the public API shape.
 
 ## Database (Prisma + Azure SQL)
 
-**Status: Phase 3 (MIKK-56) — real Key Vault wiring implemented; blocked on invalid SQL
-credentials, not infrastructure/access.** Prisma is installed and configured
-(Phase 1/MIKK-51), a `DatabaseSmokeTest` model + `GET /api/db-test` exist (Phase 2/MIKK-53),
-and `DATABASE_URL` is now resolved automatically at startup from the real Azure Key Vault
+**Status: Phase 3 (MIKK-56) — DONE. Live against the real Azure SQL database.** Prisma is
+installed and configured (Phase 1/MIKK-51), the `DatabaseSmokeTest` model +
+`GET /api/db-test` exist (Phase 2/MIKK-53) and are now fully wired to the real database,
+and `DATABASE_URL` is resolved automatically at startup from the real Azure Key Vault
 secret (Phase 3/MIKK-56, this section). `Certification`, `CareerLevel`, `Profile`, and
 `learning-plan` are still untouched and still read from `src/data/`.
 
@@ -150,40 +150,38 @@ sqlserver://<host>:<port>;database=<db>;user=<user>;password=<password>;encrypt=
 This is a mechanical re-formatting of the same components (verified against the real
 secret's structure), not a guess at an unconfirmed format.
 
-### Known issue — the stored credential does not authenticate (current blocker)
+### Resolved issue — credential correction + a database-name mismatch, both now fixed
 
-With the real secret fetched and correctly reformatted, the connection reaches the real
-Azure SQL server (`mikkelrev.database.windows.net`) but **authentication fails**:
-
-```
-Error: P1000: Authentication failed against database server, the provided database
-credentials for `azureuser` are not valid.
-```
-
-This was independently confirmed with a second, unrelated SQL driver (`mssql`/tedious)
-using the same parsed username/password/host/port, bypassing Prisma's connection-string
-parser entirely — ruling out a parsing/format bug and isolating the failure to the
-credential value itself. **Network access, Key Vault access, and the connection-string
-format are all confirmed working; the password stored in `SqlConnectionString2` does not
-match the current password for the `azureuser` SQL login** (or that login is
-disabled/renamed). This needs to be corrected at the secret/SQL-Server level — no
-application-code change can fix an invalid stored credential.
+The credential in `SqlConnectionString2` was corrected by the secret owner after an initial
+`P1000` authentication failure (see `docs/CHANGELOG.md` for that earlier finding). After the
+correction, authentication succeeded, but a **second, distinct issue** surfaced: the
+secret's `database=mikkelrev` parameter didn't match any existing database — direct
+inspection of `sys.databases` on the server showed only `master` and a differently-spelled
+`mikelrev` (single "k") were visible to that login. This was **not** worked around by
+silently redirecting the app to `mikelrev` — the app always uses whatever database name
+`SqlConnectionString2` specifies, unmodified. Instead, running the real
+`npx prisma migrate deploy` against the secret's actual value caused Azure SQL to
+**auto-create** the `mikkelrev` (double "k") database — the SQL login has `CREATE DATABASE`
+rights on the server — and the migration applied cleanly to that new, empty database. Both
+`mikelrev` and `mikkelrev` now exist as separate databases on the server; the app only ever
+talks to `mikkelrev`, matching the secret. Whether `mikelrev` was an earlier typo/leftover is
+outside this issue's scope to resolve — flagged as a risk below.
 
 ### Migration strategy
 
 - **`prisma migrate dev`** — for authoring and applying migrations against a reachable
   dev/test database during local development.
 - **`prisma migrate deploy`** — applies already-committed migrations, no schema diffing.
-  Run for real against `DATABASE_URL` resolved above; see the real output in
-  `docs/CHANGELOG.md` (MIKK-56 entry) — it failed with the `P1000` authentication error
-  above, not a migration-logic error (the migration itself was never reached).
+  **Successfully run for real** against the live-resolved `DATABASE_URL`; see the real
+  output in `docs/CHANGELOG.md` (MIKK-56 entry) — `SQL Server database created` (auto-create,
+  see above) followed by `All migrations have been successfully applied`. Re-running is
+  idempotent (`No pending migrations to apply`).
 - **Where `prisma migrate deploy` runs in an ongoing deployment pipeline is still
-  unresolved** — this issue ran it manually from the VM once real credentials/Key Vault
-  access were confirmed; no CI/CD step invokes it yet
+  unresolved** — this issue ran it manually from the VM; no CI/CD step invokes it yet
   (`.github/workflows/levelup-api-dev.yml` still doesn't run any Prisma command).
-- The `add_database_smoke_test` migration (Phase 2/MIKK-53) exists under
-  `prisma/migrations/` but is **not yet applied to the real Azure SQL database** — blocked
-  by the credential issue above, not by access/format.
+- The `add_database_smoke_test` migration (Phase 2/MIKK-53) is **now applied to the real
+  Azure SQL database** (`mikkelrev`) — `DatabaseSmokeTest`, `_prisma_migrations`, and the
+  Azure-managed `database_firewall_rules` are the only tables present.
 
 ## Project structure
 
@@ -249,14 +247,16 @@ backend/
 - App Service runs `npm install` automatically during deployment (Oryx build) and then
   the `start` script (`npm start`) to launch the app — no custom startup command is
   required as long as deployment targets the `backend/` directory as the app root.
-- **This has been validated running on a self-hosted Azure VM** (Phase 3/MIKK-56): the VM's
-  Managed Identity successfully retrieves `SqlConnectionString2` from Key Vault and the
-  server starts correctly with `DATABASE_URL` resolved. **Still unconfirmed** whether the
-  Azure App Service resource (`levelup-api-dev`) is also a real target — if it is, it would
-  need either the same `AZURE_KEY_VAULT_URL` env var + a system-assigned Managed Identity
-  granted `get`/`list` on the vault, or a native App Service **Key Vault reference** in
-  Application Settings instead (which would bypass `loadDatabaseUrl.js` entirely, since App
-  Service injects the resolved value directly as `DATABASE_URL`) — not decided here.
+- **Fully validated end-to-end running on a self-hosted Azure VM** (Phase 3/MIKK-56): the
+  VM's Managed Identity retrieves `SqlConnectionString2` from Key Vault, the server starts
+  with `DATABASE_URL` resolved, `prisma migrate deploy` applies cleanly against the real
+  Azure SQL database, and `GET /api/db-test` returns a real, persisted, incrementing record.
+  **Still unconfirmed** whether the Azure App Service resource (`levelup-api-dev`) is also a
+  real target — if it is, it would need either the same `AZURE_KEY_VAULT_URL` env var + a
+  system-assigned Managed Identity granted `get`/`list` on the vault, or a native App
+  Service **Key Vault reference** in Application Settings instead (which would bypass
+  `loadDatabaseUrl.js` entirely, since App Service injects the resolved value directly as
+  `DATABASE_URL`) — not decided here.
 - The runtime identity (however `DefaultAzureCredential` resolves it — VM Managed Identity
   confirmed working here) needs `get`/`list` secret permission on the `Hemmelig-safe` Key
   Vault, and outbound network access to `*.vault.azure.net` and
