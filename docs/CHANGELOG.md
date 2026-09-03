@@ -413,3 +413,91 @@ Shared, version-controlled record of tasks completed during LevelUp platform dev
 - What was done: Independently re-verified every claim in the Back-end Developer's report from a clean checkout rather than trusting the diff description — full file-list diff against `8228c6e..80654ca`, forbidden-path grep (`Certification`/`CareerLevel`/`Profile`/`learningPlan`/`Project` → zero matches), fresh `npm ci && npm test` (7 suites/15 tests green), `prisma validate` with a placeholder `DATABASE_URL`, and a fully independent live end-to-end run: spun up my own throwaway `mcr.microsoft.com/mssql/server:2022-latest` container (separate from the dev's, which was already destroyed), applied the exact committed `migration.sql` via `prisma migrate deploy` (no regeneration, no manual edits), started `src/server.js`, and hit `GET /api/db-test` twice — got the exact required success shape both times (`id` correctly incrementing 1→2). Container destroyed afterward, no trace left.
 - Decision/notes: **Result: PASS / APPROVED.** No defects found. The "not applied to real Azure SQL" claim is confirmed honest and correct — no `DATABASE_URL`/`az` CLI/Key Vault access exists in this QA runtime either, consistent with the dev's report. Rollback checklist reviewed and matches the actual file set.
 - Open questions / risks: Same unresolved cross-issue gap as MIKK-51/MIKK-53 — real Azure SQL deployment target, `SqlConnectionString` secret format, and how `DATABASE_URL` reaches the runtime. Not a defect in this work; flagged for whoever gets real Key Vault/DB access next. Minor non-blocking note: `dbTestRepository.js` creates its own `PrismaClient()` instance rather than sharing one — fine for a single-purpose smoke-test route, worth revisiting if more Prisma repositories are added.
+
+## 2026-09-03 — MIKK-56: Phase 3 — real Key Vault wiring implemented; blocked on invalid SQL credentials (not access)
+
+- Component: backend
+- Issue/ref: MIKK-56 (Phase 3, continues MIKK-53 `80654ca`/MIKK-51 `8228c6e` on `agent/back-end-developer/363dd7daf6ba`). Product Owner confirmed Key Vault name **`Hemmelig-safe`** (`https://hemmelig-safe.vault.azure.net/`) and secret name **`SqlConnectionString2`** in-thread; this runtime is a self-hosted Azure VM (`slazmikkelrev02`) with a system-assigned Managed Identity — genuinely different execution environment from MIKK-53's (which had no `az` CLI/Key Vault/DB reachability at all).
+- What was done:
+  - Added `@azure/identity` (`^4.13.1`) and `@azure/keyvault-secrets` (`^4.11.2`) as runtime dependencies (`backend/package.json`/`package-lock.json`).
+  - New `backend/src/config/loadDatabaseUrl.js`: reads the vault URI from `AZURE_KEY_VAULT_URL` (never a hardcoded vault name/URL in code), uses `DefaultAzureCredential` (resolves the VM's Managed Identity via IMDS) + `SecretClient` to fetch `SqlConnectionString2`, and sets `process.env.DATABASE_URL` in-memory only — never logged, never written to a file. Also exports `toPrismaConnectionString()`, a small explicit re-serialization from the secret's actual postgres-URL-like shape (`sqlserver://user:pass@host:port?database=..&encrypt=..&trustServerCertificate=..`) into the semicolon-delimited shape Prisma's `sqlserver` connector actually requires (`sqlserver://host:port;database=..;user=..;password=..;encrypt=..;trustServerCertificate=..`) — a mechanical re-formatting of the same components, not a guess at an unconfirmed format (verified structurally against the real secret).
+  - Modified `backend/src/server.js`: now an async `start()` that calls `resolveDatabaseUrl()` (skips Key Vault if `DATABASE_URL` is already set, e.g. local `.env`) *before* `require('./app')` — critical because `dbTestRepository.js` instantiates `PrismaClient()` at module-load time as soon as `app.js`'s require chain reaches it, so `DATABASE_URL` must already be resolved before that require happens. If Key Vault resolution fails, only a generic error is logged (no connection-string content) and the server still starts.
+  - `.env.example`: documented (name only) the new `AZURE_KEY_VAULT_URL` var and clarified `DATABASE_URL` can be left unset to auto-resolve from Key Vault.
+  - `backend/README.md`: rewrote the "Database (Prisma + Azure SQL)" section — both Phase 1/2 open questions are now answered for real (see Decision/notes), added a "Known issue" subsection documenting the credential blocker below, and updated the Azure App Service deployment notes with what's now been validated from a real VM run.
+  - No `schema.prisma` change needed (already reads `env("DATABASE_URL")` from Phase 1). No `Certification`/`CareerLevel`/`Profile`/`learning-plan`/`Project` files touched.
+- Commands executed (in order): `npm install @azure/identity @azure/keyvault-secrets --save`; `npm test` (before and after, both green); manual Node scripts to (a) call `loadDatabaseUrl()` directly and confirm `DATABASE_URL` resolves with the expected `sqlserver://...` shape (no value printed), (b) run a `SELECT 1` via a fresh `PrismaClient()` (failed — see below), (c) an independent `mssql`/tedious connection test using the same parsed user/host/port/database bypassing Prisma's parser entirely (failed identically); `npx prisma migrate deploy` with the real resolved `DATABASE_URL`; started `node src/server.js` on a scratch port with `AZURE_KEY_VAULT_URL` set and curled `GET /api/health` and `GET /api/db-test` against it.
+- Migration results (real `prisma migrate deploy` output against `mikkelrev.database.windows.net`, connection string never appeared in output):
+  ```
+  Prisma schema loaded from prisma/schema.prisma
+  Datasource "db": SQL Server database
+
+  Error: P1000: Authentication failed against database server, the provided database credentials for `azureuser` are not valid.
+  ```
+  Migration was never reached/applied — failed at the authentication step, before any schema/migration logic ran.
+- Endpoint test result (real `GET /api/db-test`, server running with the real resolved `DATABASE_URL`):
+  ```json
+  {"success":false,"databaseConnected":false,"recordCreated":false,"error":"Unable to connect to the database","details":"Authentication failed against database server, the provided database credentials for `azureuser` are not valid.\n\nPlease make sure to provide valid database credentials for the database server at the configured address."}
+  ```
+  `GET /api/health` returned `{"status":"ok"}` normally — confirms the server starts and serves other routes correctly even when the DB connection fails, per the Phase 2 design (structured failure, not a crash).
+- Decision/notes:
+  - **Step 0 (this issue's own gate) passed fully this time**: real Managed Identity + IMDS credential path confirmed, real network reachability to both Key Vault and Azure SQL confirmed, real vault name/URI confirmed by the Product Owner in-thread. This is genuinely different from every prior phase's runtime.
+  - **Secret retrieval, format conversion, and app wiring are all confirmed working end-to-end** — verified secret `get`/`list` access (also listed vault secret names via the vault's `/secrets` metadata endpoint — no values), fetched `SqlConnectionString2` successfully, reformatted it, and got as far as a real authentication attempt against the real Azure SQL server.
+  - **Current blocker is a credential-value problem, not an access/format/network problem**: the password in `SqlConnectionString2` does not authenticate as the `azureuser` SQL login on `mikkelrev.database.windows.net`. Confirmed independently with a second SQL driver (`mssql`) using the same parsed credentials, ruling out any Prisma-side parsing bug.
+  - `npx prisma migrate deploy` was **not applied** for real (authentication failure, not migration-logic failure) — the `add_database_smoke_test` migration from Phase 2 still has not touched the real Azure SQL database.
+  - Did not attempt to fabricate, guess, or work around the credential problem (e.g. no password reset, no alternate login tried) — that requires whoever manages the `azureuser` SQL login / the `SqlConnectionString2` secret's value to correct it.
+- Tests: `cd backend && npm test` → 7 suites / 15 tests, all green, unchanged from Phase 2 (new code path is only exercised via `server.js`, not imported by any test).
+- Open questions / risks:
+  - **Immediate blocker**: `SqlConnectionString2`'s stored password does not match the current password for the `azureuser` SQL Server login (or that login is disabled/renamed) — needs correction by whoever manages the Azure SQL Server logins / the Key Vault secret value, then a straightforward re-run of `npx prisma migrate deploy` and `GET /api/db-test` (no code changes needed).
+  - Deployment target (VM vs. Azure App Service `levelup-api-dev`) is now *partially* answered: this issue proves the self-hosted-VM path works end-to-end (Managed Identity → Key Vault → Prisma), but whether App Service is also/instead a real target, and if so whether it'd use the same `loadDatabaseUrl.js` mechanism or a native App Service Key Vault reference (which would bypass this code path entirely), is still open.
+  - The VM's Managed Identity currently has Key Vault data-plane access (`get`/`list` on secrets) but no ARM/RBAC role at the resource-group level (confirmed via a prior, now-resolved Step-0 investigation) — not a problem for this issue's scope, but worth knowing if a future issue needs to enumerate Azure resources from this VM.
+
+## 2026-09-03 — MIKK-56: Phase 3 verification — credential corrected, full pipeline now live against real Azure SQL
+
+- Component: backend
+- Issue/ref: MIKK-56 (re-verification after the Product Owner corrected `SqlConnectionString2`'s SQL credentials, in-thread). No code changes were needed this round — the `loadDatabaseUrl.js`/`server.js` wiring committed in the prior MIKK-56 pass (`f8cc6c4`) worked correctly once the secret's credential was fixed.
+- What was done:
+  1. Re-ran `loadDatabaseUrl()` — secret fetch + format conversion succeeded (resolved value length changed from 132→144 chars vs. the prior password, confirming the secret content actually changed).
+  2. `SELECT 1` via a fresh `PrismaClient()` — **authentication now succeeds** (no more `P1000`), but surfaced a **second, distinct** issue: `Database \`mikkelrev\` does not exist`.
+  3. Diagnosed with the same independent `mssql`/tedious driver used in the prior round: logged into `master` successfully and queried `sys.databases` — only `master` and a differently-spelled `mikelrev` (single "k") existed at that point; `mikkelrev` (double "k", the name in the secret) did not. Did **not** redirect the app to `mikelrev` — the app always uses whatever database name `SqlConnectionString2` specifies, unmodified; this was purely a read-only diagnostic query.
+  4. Ran the real `npx prisma migrate deploy` against `DATABASE_URL` exactly as resolved from the secret (`database=mikkelrev`) — Azure SQL **auto-created** the `mikkelrev` database (the `azureuser` SQL login has `CREATE DATABASE` rights on the server) and the `add_database_smoke_test` migration applied cleanly to the new, empty database. Re-ran once more to confirm idempotency (`No pending migrations to apply`).
+  5. Verified `DatabaseSmokeTest` exists via `INFORMATION_SCHEMA.TABLES` through Prisma: `database_firewall_rules` (Azure-managed), `_prisma_migrations`, `DatabaseSmokeTest`.
+  6. Started `node src/server.js` on a scratch port with `AZURE_KEY_VAULT_URL` set (no `DATABASE_URL` pre-set) and called `GET /api/db-test` twice.
+  7. `npm test` re-run: 7 suites / 15 tests, still green, unchanged.
+- Migration output (real, against `mikkelrev.database.windows.net`, secret's exact value — nothing redacted, no connection string appeared):
+  ```
+  Prisma schema loaded from prisma/schema.prisma
+  Datasource "db": SQL Server database
+
+  SQL Server database created.
+
+
+  1 migration found in prisma/migrations
+
+  Applying migration `20260903110310_add_database_smoke_test`
+
+  The following migration(s) have been applied:
+
+  migrations/
+    └─ 20260903110310_add_database_smoke_test/
+      └─ migration.sql
+
+  All migrations have been successfully applied.
+  ```
+  Idempotency re-run: `1 migration found in prisma/migrations` / `No pending migrations to apply.`
+- Endpoint test result (real `GET /api/db-test`, called twice against the running server):
+  ```json
+  {"success":true,"databaseConnected":true,"recordCreated":true,"record":{"id":1,"message":"Database connection successful"}}
+  ```
+  ```json
+  {"success":true,"databaseConnected":true,"recordCreated":true,"record":{"id":2,"message":"Database connection successful"}}
+  ```
+  `id` incrementing 1→2 across calls confirms this is the real, persistent Azure SQL database, not a mock. `GET /api/health` continued to return `{"status":"ok"}` throughout.
+- Decision/notes:
+  - **All 3 things the user asked to confirm are now true, from the real endpoint, not a mock**: database connection succeeds, record insertion succeeds, record retrieval succeeds.
+  - The database-name mismatch (`mikelrev` vs. `mikkelrev`) was **not silently worked around** — the app was never pointed at `mikelrev`; `mikkelrev` simply didn't exist yet and Prisma's `migrate deploy` created it (a legitimate, standard Prisma/Azure SQL behavier for `sqlserver` connections with `CREATE DATABASE` rights, not a workaround invented for this issue).
+  - No code changes were required in this pass — the Phase 3 wiring committed previously (`f8cc6c4`) is unchanged and confirmed correct now that the underlying secret is valid.
+- Tests: `cd backend && npm test` → 7 suites / 15 tests, all green.
+- Open questions / risks:
+  - **`mikelrev` (single "k") also exists on the same logical server** as an empty, near-unused database (only the Azure-managed `database_firewall_rules`) — likely an earlier typo or leftover from before the naming was settled. Not touched or deleted by this issue (out of scope); flagged for whoever owns the Azure SQL Server resource to clean up or confirm intentional.
+  - Deployment target (VM vs. Azure App Service `levelup-api-dev`) remains open — this issue only validates the self-hosted-VM path.
+  - `prisma migrate deploy` auto-creating the database on first run is convenient here but is a one-time event tied to this specific empty-database scenario — future migrations should behave normally (`migrate deploy` never diffs schema, only applies pending migration files).
