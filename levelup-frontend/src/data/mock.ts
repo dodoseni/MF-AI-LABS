@@ -1,9 +1,11 @@
 import type {
+  CalendarEvent,
   CareerLevel,
   Certification,
   DevelopmentGoal,
   Profile,
   StudyChecklist,
+  WeeklyPlanDay,
 } from '../types'
 
 // Matches the `Profile` type and the `GET /api/profile` response shape (MIKK-52) so it can be
@@ -474,13 +476,66 @@ export const studyChecklists: StudyChecklist[] = [
     certificationId: 'az-305',
     certificationName: 'AZ-305 — Azure Solutions Architect Expert',
     items: [
-      { id: 'az-305-1', label: 'Complete Design Identity module', done: true },
-      { id: 'az-305-2', label: 'Complete Governance module', done: true },
-      { id: 'az-305-3', label: 'Complete Storage module', done: false },
-      { id: 'az-305-4', label: 'Complete Business Continuity module', done: false },
+      { id: 'az-305-1', label: 'Complete Design Identity module', done: true, date: '2026-08-24', type: 'module' },
+      { id: 'az-305-2', label: 'Complete Governance module', done: true, date: '2026-08-26', type: 'module' },
+      { id: 'az-305-3', label: 'Complete Storage module', done: false, date: '2026-09-09', type: 'module' },
+      { id: 'az-305-4', label: 'Complete Business Continuity module', done: false, date: '2026-09-16', type: 'module' },
       { id: 'az-305-5', label: 'Take Practice Exam', done: false },
       { id: 'az-305-6', label: 'Schedule Certification Exam', done: false },
       { id: 'az-305-7', label: 'Pass Certification Exam', done: false },
     ],
   },
+]
+
+/**
+ * Learning Plan calendar — Certification journey tracking (MIKK-55).
+ *
+ * Two feeder sources make up the calendar events shown on the Learning Plan page:
+ *  1. Dated `studyChecklists[].items` (modules) — derived live in `LearningPlan.tsx` so ticking
+ *     an item off is reflected on the calendar without a second copy of the data.
+ *  2. `certificationJourneyEvents` below — practice exams, the certification exam itself, and
+ *     milestone deadlines that aren't individual checklist items (e.g. "book the exam by").
+ *  3. `weeklyStudyPlan` — the recurring weekly cadence, projected onto real calendar dates in
+ *     `LearningPlan.tsx` (`study` events) so the weekly schedule and the calendar stay in sync.
+ */
+export const certificationJourneyEvents: CalendarEvent[] = [
+  {
+    id: 'cal-1',
+    date: '2026-09-15',
+    title: 'Complete AZ-305 Design study path',
+    type: 'milestone',
+    certificationId: 'az-305',
+  },
+  {
+    id: 'cal-2',
+    date: '2026-10-15',
+    title: 'AZ-305 practice exam — target 70%+',
+    type: 'practice',
+    certificationId: 'az-305',
+  },
+  {
+    id: 'cal-3',
+    date: '2026-11-01',
+    title: 'Book AZ-305 certification exam slot',
+    type: 'milestone',
+    certificationId: 'az-305',
+  },
+  {
+    id: 'cal-4',
+    date: '2026-11-30',
+    title: 'AZ-305 certification exam',
+    type: 'exam',
+    certificationId: 'az-305',
+  },
+]
+
+/**
+ * Recurring weekly study cadence — projected onto the calendar as `study` events for a rolling
+ * window (see `LearningPlan.tsx`), and also shown as its own "Weekly study schedule" card.
+ */
+export const weeklyStudyPlan: WeeklyPlanDay[] = [
+  { day: 'Monday', items: ['AZ-305: Design identity & governance — reading'] },
+  { day: 'Wednesday', items: ['AZ-305: Design data storage & business continuity — reading'] },
+  { day: 'Friday', items: ['Hands-on practice lab (Azure sandbox)'] },
+  { day: 'Sunday', items: ['Weekly quiz + recap'] },
 ]

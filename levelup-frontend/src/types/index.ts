@@ -100,6 +100,13 @@ export interface StudyChecklistItem {
   id: string
   label: string
   done: boolean
+  /** Optional planned/target date (ISO `yyyy-mm-dd`). When set, the item is surfaced on the
+   *  Learning Plan calendar (see `CalendarEvent`) — undated items (e.g. user-added todos) are
+   *  checklist-only and don't appear on the calendar. */
+  date?: string
+  /** Calendar visual-indicator type for this item; defaults to `'study'` when a date is set but
+   *  no explicit type is given. */
+  type?: CalendarEventType
 }
 
 /** A simple, per-certification study checklist — the entire Learning Plan data model. */
@@ -108,4 +115,25 @@ export interface StudyChecklist {
   certificationId: string
   certificationName: string
   items: StudyChecklistItem[]
+}
+
+/** Visual-indicator categories shown on the Learning Plan calendar. */
+export type CalendarEventType = 'module' | 'study' | 'practice' | 'exam' | 'milestone'
+
+/** A single dated entry on the Learning Plan calendar — a study session, module, practice
+ *  exam, certification exam or milestone/deadline. */
+export interface CalendarEvent {
+  id: string
+  /** ISO date (`yyyy-mm-dd`), local time — matches the day it should render under. */
+  date: string
+  title: string
+  type: CalendarEventType
+  /** Id of the related certification (matches `Certification.id`), when applicable. */
+  certificationId?: string
+}
+
+/** One day of the user's recurring weekly study cadence (e.g. "Monday" → study items). */
+export interface WeeklyPlanDay {
+  day: string
+  items: string[]
 }

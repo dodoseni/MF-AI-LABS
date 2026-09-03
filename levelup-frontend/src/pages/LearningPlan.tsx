@@ -1,10 +1,48 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ApiNotice, Button, Card, CardHead, Icon, PageHead, ProgressBar } from '../components/ui'
-import { studyChecklists as checklistsFallback } from '../data/mock'
+import { Calendar } from '../components/Calendar'
+import {
+  certificationJourneyEvents,
+  studyChecklists as checklistsFallback,
+  weeklyStudyPlan,
+} from '../data/mock'
 import { getLearningPlan } from '../api/learningPlan'
 import { useCertifications } from '../context/CertificationsContext'
 import { useLanguage } from '../i18n/LanguageContext'
-import type { StudyChecklist } from '../types'
+import type { CalendarEvent, StudyChecklist } from '../types'
+
+function toDateKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+}
+
+/** Projects the recurring weekly study cadence onto real calendar dates for a rolling window,
+ *  so the "Weekly study schedule" card and the calendar stay in sync. */
+function projectWeeklyEvents(rangeStart: Date, rangeEnd: Date): CalendarEvent[] {
+  const events: CalendarEvent[] = []
+  for (const { day, items } of weeklyStudyPlan) {
+    const targetDow = WEEKDAY_INDEX[day]
+    const cursor = new Date(rangeStart)
+    while (cursor.getDay() !== targetDow) cursor.setDate(cursor.getDate() + 1)
+    while (cursor <= rangeEnd) {
+      const dateKey = toDateKey(cursor)
+      items.forEach((title, i) => {
+        events.push({ id: `weekly-${day}-${dateKey}-${i}`, date: dateKey, title, type: 'study' })
+      })
+      cursor.setDate(cursor.getDate() + 7)
+    }
+  }
+  return events
+}
 
 type ResourceStatus = 'loading' | 'success' | 'error'
 
@@ -45,6 +83,26 @@ export default function LearningPlan() {
   const availableCerts = certifications.filter(
     (c) => !checklists.some((p) => p.certificationId === c.id),
   )
+
+  // Certification journey calendar — merges (1) dated study-checklist items (live: ticking an
+  // item off doesn't remove it from the calendar, but keeps calendar + checklist as one source
+  // of truth), (2) hand-authored exam/practice/milestone events, and (3) the recurring weekly
+  // study cadence projected onto real dates.
+  const calendarEvents = useMemo<CalendarEvent[]>(() => {
+    const fromChecklists: CalendarEvent[] = checklists.flatMap((plan) =>
+      plan.items
+        .filter((item) => item.date)
+        .map((item) => ({
+          id: `${plan.id}-${item.id}`,
+          date: item.date!,
+          title: `${plan.certificationName.split(' — ')[0]}: ${item.label}`,
+          type: item.type ?? 'study',
+          certificationId: plan.certificationId,
+        })),
+    )
+    const weekly = projectWeeklyEvents(new Date(2026, 7, 1), new Date(2026, 11, 31))
+    return [...fromChecklists, ...certificationJourneyEvents, ...weekly]
+  }, [checklists])
 
   function toggleItem(planId: string, itemId: string) {
     editedRef.current = true
@@ -123,6 +181,36 @@ export default function LearningPlan() {
           retryLabel={t('common.retry')}
         />
       )}
+
+      <div className="grid grid-main-2 mb-16" style={{ alignItems: 'start' }}>
+        <Card>
+          <CardHead title={t('learning.calendar.title')} icon="calendar" />
+          <p style={{ padding: '0 20px', margin: '2px 0 0', fontSize: 13, color: 'var(--text-secondary)' }}>
+            {t('learning.calendar.subtitle')}
+          </p>
+          <Calendar events={calendarEvents} />
+        </Card>
+        <Card>
+          <CardHead title={t('learning.weeklyPlan.title')} icon="clock" />
+          <div style={{ padding: '4px 20px 20px' }}>
+            <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)' }}>
+              {t('learning.weeklyPlan.subtitle')}
+            </p>
+            <div className="weekly-plan">
+              {weeklyStudyPlan.map((wd) => (
+                <div className="weekly-day" key={wd.day}>
+                  <div className="weekly-day-name">{wd.day}</div>
+                  {wd.items.map((item) => (
+                    <div className="weekly-day-item" key={item}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
 
       {checklists.length === 0 ? (
         <div className="card card-pad center" style={{ paddingBlock: 48 }}>
